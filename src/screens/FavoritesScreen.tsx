@@ -31,6 +31,14 @@ const FavoritesScreen: React.FC = () => {
     navigation.replace('Search');
   };
 
+  const handleOpenWork = () => {
+    navigation.navigate('ReadWork');
+  };
+
+  const handleMessage = () => {
+    navigation.navigate('Chat');
+  };
+
   // Dados de exemplo
   const favoriteWorks: FavoriteWork[] = [
     {
@@ -66,7 +74,7 @@ const FavoritesScreen: React.FC = () => {
   ];
 
   const renderFavoriteWork = ({ item }: { item: FavoriteWork }) => (
-    <View style={styles.workCard}>
+    <TouchableOpacity style={styles.workCard} activeOpacity={0.85} onPress={handleOpenWork}>
       <View style={styles.workCover}>
         <Text style={styles.workCoverText}>Capa do trabalho</Text>
       </View>
@@ -87,10 +95,16 @@ const FavoritesScreen: React.FC = () => {
           </View>
         </View>
       </View>
-      <TouchableOpacity style={styles.removeButton}>
-        <Text style={styles.removeButtonText}>Remover</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.actionsColumn}>
+        <TouchableOpacity style={styles.messageButton} onPress={handleMessage} activeOpacity={0.8}>
+          <Ionicons name="chatbubbles-outline" size={18} color="#fff" />
+          <Text style={styles.messageButtonText}>Mensagem</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.removeButton}>
+          <Text style={styles.removeButtonText}>Remover</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -228,6 +242,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginLeft: 4,
+  },
+  actionsColumn: {
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginLeft: 8,
+  },
+  messageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6b86f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  messageButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   removeButton: {
     backgroundColor: '#6b86f0',
