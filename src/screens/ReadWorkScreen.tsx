@@ -39,7 +39,7 @@ const ReadWorkScreen: React.FC = () => {
             onPress={() => navigation.navigate('Chat')}
             hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
           >
-            <Ionicons name="chatbubbles-outline" size={28} color="#111" />
+            <Ionicons name="chatbubbles-outline" size={28} color="#6b86f0" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconButton}
