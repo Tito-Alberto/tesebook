@@ -33,17 +33,26 @@ const ReadWorkScreen: React.FC = () => {
             resizeMode="contain"
           />
         </View>
-        <TouchableOpacity
-          style={styles.favoriteButton}
-          onPress={toggleFavorite}
-          hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
-        >
-          <Ionicons
-            name={isFavorite ? 'heart' : 'heart-outline'}
-            size={28}
-            color={isFavorite ? '#ff0000' : '#111'}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('Chat')}
+            hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
+          >
+            <Ionicons name="chatbubbles-outline" size={28} color="#111" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={toggleFavorite}
+            hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={28}
+              color={isFavorite ? '#ff0000' : '#111'}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* PDF Content Area */}
@@ -126,8 +135,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 30,
   },
-  favoriteButton: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
     padding: 8,
+    marginLeft: 8,
   },
   pdfContainer: {
     flex: 1,
