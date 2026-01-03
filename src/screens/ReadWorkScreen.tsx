@@ -7,11 +7,18 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+
+type RouteParams = {
+  allowDownload?: boolean;
+};
 
 const ReadWorkScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute();
+  const params = (route?.params as RouteParams) || {};
   const [isFavorite, setIsFavorite] = useState(false);
+  const canDownload = params.allowDownload !== false;
 
   const handleDownload = () => {
     // Aqui pode adicionar a lógica para baixar o PDF
@@ -70,11 +77,22 @@ const ReadWorkScreen: React.FC = () => {
 
       {/* Download Button */}
       <TouchableOpacity
-        style={styles.downloadButton}
-        onPress={handleDownload}
-        activeOpacity={0.85}
+        style={[
+          styles.downloadButton,
+          !canDownload && styles.downloadButtonDisabled,
+        ]}
+        onPress={canDownload ? handleDownload : undefined}
+        activeOpacity={canDownload ? 0.85 : 1}
+        disabled={!canDownload}
       >
-        <Text style={styles.downloadButtonText}>BAIXAR</Text>
+        <Text
+          style={[
+            styles.downloadButtonText,
+            !canDownload && styles.downloadButtonTextDisabled,
+          ]}
+        >
+          BAIXAR
+        </Text>
       </TouchableOpacity>
 
       {/* Bottom Navigation */}
@@ -186,6 +204,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  downloadButtonDisabled: {
+    backgroundColor: '#c7d0f8',
+  },
+  downloadButtonTextDisabled: {
+    color: '#eaeaea',
   },
   bottomNav: {
     position: 'absolute',

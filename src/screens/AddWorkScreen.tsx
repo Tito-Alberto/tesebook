@@ -54,10 +54,10 @@ const AddWorkScreen: React.FC = () => {
   };
 
   const handleAdd = () => {
-    // Aqui pode adicionar a lógica para salvar o trabalho
-    // Por enquanto, apenas volta para a tela anterior
     if (topic.trim() && allowDownload !== null) {
-      navigation.goBack();
+      navigation.navigate('ReadWork', {
+        allowDownload: allowDownload === 'sim',
+      });
     }
   };
 
