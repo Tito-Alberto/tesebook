@@ -7,6 +7,8 @@ import {
   Image,
   TouchableOpacity,
   FlatList,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -20,9 +22,17 @@ interface Work {
   institution: string;
 }
 
+type TabKey = 'Curso' | 'Instituicao';
+
 const SearchScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const [activeTab, setActiveTab] = useState<'Curso' | 'Instituição'>('Curso');
+  const [activeTab, setActiveTab] = useState<TabKey>('Curso');
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedInstitution, setSelectedInstitution] = useState('');
+  const [courseModalVisible, setCourseModalVisible] = useState(false);
+  const [institutionModalVisible, setInstitutionModalVisible] = useState(false);
 
   // Dados de exemplo
   const works: Work[] = [
@@ -48,6 +58,79 @@ const SearchScreen: React.FC = () => {
       institution: 'Nome da Instituição',
     },
   ];
+
+  const courseOptions = [
+    'DIREITO',
+    'CIÊNCIA POLÍTICA',
+    'RELAÇÕES INTERNACIONAIS',
+    'SOCIOLOGIA',
+    'PSICOLOGIA',
+    'FILOSOFIA',
+    'HISTÓRIA',
+    'CIÊNCIAS DA EDUCAÇÃO',
+    'PEDAGOGIA',
+    'EDUCAÇÃO DE INFÂNCIA',
+    'ECONOMIA',
+    'GESTÃO DE EMPRESAS',
+    'ADMINISTRAÇÃO PÚBLICA',
+    'CONTABILIDADE',
+    'FINANÇAS',
+    'AUDITORIA',
+    'MARKETING',
+    'RECURSOS HUMANOS',
+    'COMÉRCIO INTERNACIONAL',
+    'GESTÃO DE RECURSOS HUMANOS',
+    'GESTÃO HOSPITALAR',
+    'MATEMÁTICA',
+    'FÍSICA',
+    'QUÍMICA',
+    'ESTATÍSTICA',
+    'INFORMÁTICA',
+    'ENGENHARIA INFORMÁTICA',
+    'CIÊNCIA DA COMPUTAÇÃO',
+    'SISTEMAS DE INFORMAÇÃO',
+    'TECNOLOGIAS DE INFORMAÇÃO',
+    'TELECOMUNICAÇÕES',
+    'ENGENHARIA CIVIL',
+    'ENGENHARIA MECÂNICA',
+    'ENGENHARIA ELÉTRICA',
+    'ENGENHARIA ELETROTÉCNICA',
+    'ENGENHARIA DE MINAS',
+    'ENGENHARIA GEOLÓGICA',
+    'ENGENHARIA QUÍMICA',
+    'ENGENHARIA PETROLÍFERA',
+    'ENGENHARIA AMBIENTAL',
+    'ENGENHARIA DE PRODUÇÃO',
+  ];
+
+  const institutionOptions = [
+    'UNIVERSIDADE AGOSTINHO NETO (UAN)',
+    'UNIVERSIDADE CATÓLICA DE ANGOLA (UCAN)',
+    'UNIVERSIDADE METODISTA DE ANGOLA (UMA)',
+    'UNIVERSIDADE LUSÍADA DE ANGOLA (ULA)',
+    'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
+    'INSTITUTO SUPERIOR TÉCNICO DE ANGOLA (ISTA)',
+    'INSTITUTO SUPERIOR DE CIÊNCIAS DA EDUCAÇÃO (ISCED)',
+    'INSTITUTO SUPERIOR METODISTA DE ANGOLA (ISMA)',
+  ];
+
+  const filteredWorks = works.filter((item) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchCourse =
+      !selectedCourse || item.course.toLowerCase() === selectedCourse.toLowerCase();
+    const matchInstitution =
+      !selectedInstitution || item.institution.toLowerCase() === selectedInstitution.toLowerCase();
+    const matchQuery =
+      !query ||
+      item.workTopic.toLowerCase().includes(query) ||
+      item.studentName.toLowerCase().includes(query) ||
+      item.course.toLowerCase().includes(query) ||
+      item.institution.toLowerCase().includes(query);
+
+    const byTab = activeTab === 'Curso' ? matchCourse : matchInstitution;
+
+    return matchCourse && matchInstitution && matchQuery && byTab;
+  });
 
   const renderWorkItem = ({ item }: { item: Work }) => (
     <View style={styles.workItem}>
@@ -76,7 +159,7 @@ const SearchScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Tabs Section */}
+      {/* Tabs + Search */}
       <View style={styles.tabsContainer}>
         <View style={styles.tabsRow}>
           <TouchableOpacity
@@ -96,22 +179,63 @@ const SearchScreen: React.FC = () => {
 
           <TouchableOpacity
             style={styles.tab}
-            onPress={() => setActiveTab('Instituição')}
+            onPress={() => setActiveTab('Instituicao')}
           >
             <Text
               style={[
                 styles.tabText,
-                activeTab === 'Instituição' && styles.tabTextActive,
+                activeTab === 'Instituicao' && styles.tabTextActive,
               ]}
             >
               Instituição
             </Text>
-            {activeTab === 'Instituição' && <View style={styles.tabUnderline} />}
+            {activeTab === 'Instituicao' && <View style={styles.tabUnderline} />}
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.searchIcon}>
+          <TouchableOpacity
+            style={styles.searchIcon}
+            onPress={() => setSearchVisible((prev) => !prev)}
+          >
             <Ionicons name="search" size={24} color="#111" />
           </TouchableOpacity>
+        </View>
+
+        {searchVisible && (
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="#6b86f0" style={{ marginRight: 8 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Pesquisar por tema, nome, curso ou instituição"
+              placeholderTextColor="#888"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoFocus
+            />
+          </View>
+        )}
+
+        <View style={styles.filterRow}>
+          {activeTab === 'Curso' ? (
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setCourseModalVisible(true)}
+            >
+              <Text style={[styles.filterText, { color: selectedCourse ? '#222' : '#888' }]}>
+                {selectedCourse || 'Selecionar curso'}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color="#666" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setInstitutionModalVisible(true)}
+            >
+              <Text style={[styles.filterText, { color: selectedInstitution ? '#222' : '#888' }]}>
+                {selectedInstitution || 'Selecionar instituição'}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color="#666" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -122,7 +246,7 @@ const SearchScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         <FlatList
-          data={works}
+          data={filteredWorks}
           renderItem={renderWorkItem}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
@@ -132,6 +256,71 @@ const SearchScreen: React.FC = () => {
 
       {/* Bottom Navigation */}
       <BottomNav active="search" />
+
+      {/* Modal Curso */}
+      <Modal
+        visible={courseModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCourseModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Escolha o curso</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {courseOptions.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setSelectedCourse(item);
+                    setCourseModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setCourseModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Instituição */}
+      <Modal
+        visible={institutionModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setInstitutionModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Escolha a instituição</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {institutionOptions.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setSelectedInstitution(item);
+                    setInstitutionModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() => setInstitutionModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -191,6 +380,39 @@ const styles = StyleSheet.create({
     padding: 8,
     marginLeft: 16,
   },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#222',
+  },
+  filterRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  filterText: {
+    fontSize: 15,
+    color: '#222',
+    fontWeight: '600',
+  },
   scrollView: {
     flex: 1,
   },
@@ -243,7 +465,45 @@ const styles = StyleSheet.create({
     color: '#222',
     marginBottom: 4,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  modalItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: '#222',
+  },
+  modalClose: {
+    marginTop: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    color: '#6b86f0',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default SearchScreen;
-
