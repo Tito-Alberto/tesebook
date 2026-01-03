@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: 'center',
     alignSelf: 'flex-start',
-    marginTop: 8,
+    marginTop: 14,
   },
   removeButtonText: {
     color: '#fff',
