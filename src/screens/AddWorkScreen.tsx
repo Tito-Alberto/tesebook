@@ -16,7 +16,7 @@ import { globalStyles } from '../styles';
 
 const AddWorkScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const [pdfFile, setPdfFile] = useState('Arquivo pdf');
+  const [pdfFile, setPdfFile] = useState('Adicione seu trabalho em pdf');
   const [topic, setTopic] = useState('');
   const [allowDownload, setAllowDownload] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
