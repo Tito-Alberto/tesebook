@@ -26,6 +26,13 @@ const ReadWorkScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
+        >
+          <Ionicons name="arrow-back" size={26} color="#111" />
+        </TouchableOpacity>
         <View style={styles.logoContainer}>
           <Image
             source={require('../../assets/tesebook.png')}
@@ -127,6 +134,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
   },
   logoContainer: {
     alignItems: 'flex-start',
