@@ -122,8 +122,12 @@ const HomeScreen: React.FC = () => {
     </View>
   );
 
+  const handleOpenWork = () => {
+    navigation.navigate('ReadWork');
+  };
+
   const renderWorkCard = ({ item }: { item: Work }) => (
-    <View style={styles.workCard}>
+    <TouchableOpacity style={styles.workCard} activeOpacity={0.8} onPress={handleOpenWork}>
       <View style={styles.workCover}>
         <Text style={styles.workCoverText}>Capa do trabalho</Text>
       </View>
@@ -144,7 +148,7 @@ const HomeScreen: React.FC = () => {
           </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
