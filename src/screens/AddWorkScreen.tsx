@@ -16,7 +16,8 @@ import { globalStyles } from '../styles';
 
 const AddWorkScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const [pdfFile, setPdfFile] = useState('Adicione seu trabalho em pdf');
+  const pdfPlaceholder = 'Arquivo PDF';
+  const [pdfFile, setPdfFile] = useState(pdfPlaceholder);
   const [topic, setTopic] = useState('');
   const [allowDownload, setAllowDownload] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -24,7 +25,7 @@ const AddWorkScreen: React.FC = () => {
   const pickCoverImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permissão para acessar as fotos é necessária!');
+      alert('Permissao para acessar as fotos e necessaria.');
       return;
     }
 
@@ -67,7 +68,6 @@ const AddWorkScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -90,7 +90,6 @@ const AddWorkScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Cover Photo Placeholder */}
         <TouchableOpacity
           style={styles.coverPhotoContainer}
           activeOpacity={0.8}
@@ -103,15 +102,11 @@ const AddWorkScreen: React.FC = () => {
           )}
         </TouchableOpacity>
 
-        {/* Form Fields */}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Adicionar trabalho</Text>
-            <TouchableOpacity
-              style={styles.inputTouchable}
-              onPress={pickPdf}
-            >
-              <Text style={[styles.input, { color: pdfFile === 'Arquivo pdf' ? '#999' : '#222' }]}>
+            <TouchableOpacity style={styles.inputTouchable} onPress={pickPdf}>
+              <Text style={[styles.input, { color: pdfFile === pdfPlaceholder ? '#999' : '#222' }]}>
                 {pdfFile}
               </Text>
             </TouchableOpacity>
@@ -130,48 +125,32 @@ const AddWorkScreen: React.FC = () => {
             <View style={styles.inputLine} />
           </View>
 
-          {/* Download Permission */}
           <View style={styles.radioContainer}>
-            <Text style={styles.label}>Permiter fazer download ?</Text>
+            <Text style={styles.label}>Permitir fazer download?</Text>
             <View style={styles.radioButtons}>
-              <TouchableOpacity
-                style={styles.radioOption}
-                onPress={() => setAllowDownload('sim')}
-              >
+              <TouchableOpacity style={styles.radioOption} onPress={() => setAllowDownload('sim')}>
                 <View style={styles.radioCircle}>
                   {allowDownload === 'sim' && <View style={styles.radioInner} />}
                 </View>
                 <Text style={styles.radioText}>Sim</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.radioOption}
-                onPress={() => setAllowDownload('não')}
-              >
+              <TouchableOpacity style={styles.radioOption} onPress={() => setAllowDownload('nao')}>
                 <View style={styles.radioCircle}>
-                  {allowDownload === 'não' && <View style={styles.radioInner} />}
+                  {allowDownload === 'nao' && <View style={styles.radioInner} />}
                 </View>
-                <Text style={styles.radioText}>Não</Text>
+                <Text style={styles.radioText}>Nao</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
 
-        {/* Action Buttons */}
         <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handleAdd}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={styles.addButton} onPress={handleAdd} activeOpacity={0.85}>
             <Text style={styles.buttonText}>Adicionar</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleCancel}
-            activeOpacity={0.85}
-          >
+          <TouchableOpacity style={styles.cancelButton} onPress={handleCancel} activeOpacity={0.85}>
             <Text style={styles.buttonText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
