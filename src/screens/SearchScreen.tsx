@@ -133,7 +133,7 @@ const SearchScreen: React.FC = () => {
   });
 
   const renderWorkItem = ({ item }: { item: Work }) => (
-    <View style={styles.workItem}>
+    <TouchableOpacity style={styles.workItem} activeOpacity={0.8} onPress={() => navigation.navigate('ReadWork')}>
       <View style={styles.workCover}>
         <Text style={styles.workCoverText}>Capa do trabalho</Text>
       </View>
@@ -143,7 +143,7 @@ const SearchScreen: React.FC = () => {
         <Text style={styles.workInfo}>{item.course}</Text>
         <Text style={styles.workInfo}>{item.institution}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
