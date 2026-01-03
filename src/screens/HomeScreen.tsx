@@ -49,14 +49,14 @@ const HomeScreen: React.FC = () => {
       studentName: 'Nome do Estudante',
       workTopic: 'Tema do Trabalho',
       course: 'Curso',
-      description: 'DescriÇõÇœo resumida do trabalho sugerido.',
+      description: 'Descrição resumida do trabalho sugerido.',
     },
     {
       id: '2',
       studentName: 'Nome do Estudante',
       workTopic: 'Tema do Trabalho',
       course: 'Curso',
-      description: 'DescriÇõÇœo resumida do trabalho sugerido.',
+      description: 'Descrição resumida do trabalho sugerido.',
     },
   ];
 
@@ -308,7 +308,7 @@ const HomeScreen: React.FC = () => {
                 <Text style={styles.modalValue}>{selectedTopic.workTopic}</Text>
                 <Text style={styles.modalLabel}>Curso</Text>
                 <Text style={styles.modalValue}>{selectedTopic.course}</Text>
-                <Text style={styles.modalLabel}>DescriÇõÇœo</Text>
+                <Text style={styles.modalLabel}>Descrição</Text>
                 <Text style={styles.modalValue}>{selectedTopic.description}</Text>
               </View>
             )}
