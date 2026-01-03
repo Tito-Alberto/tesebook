@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import {
   View,
   Text,
@@ -23,7 +24,7 @@ const AddWorkScreen: React.FC = () => {
   const pickCoverImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('PermissÇœo para acessar as fotos Ç¸ necessÇ­ria!');
+      alert('Permissão para acessar as fotos é necessária!');
       return;
     }
 
@@ -36,6 +37,19 @@ const AddWorkScreen: React.FC = () => {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setCoverImage(result.assets[0].uri);
+    }
+  };
+
+  const pickPdf = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'application/pdf',
+      copyToCacheDirectory: true,
+    });
+
+    if (result.type === 'success') {
+      setPdfFile(result.name || 'Arquivo selecionado');
+    } else if ('assets' in result && result.assets && result.assets.length > 0) {
+      setPdfFile(result.assets[0].name || 'Arquivo selecionado');
     }
   };
 
@@ -95,9 +109,7 @@ const AddWorkScreen: React.FC = () => {
             <Text style={styles.label}>Adicionar trabalho</Text>
             <TouchableOpacity
               style={styles.inputTouchable}
-              onPress={() => {
-                // Aqui pode adicionar lógica para selecionar arquivo PDF
-              }}
+              onPress={pickPdf}
             >
               <Text style={[styles.input, { color: pdfFile === 'Arquivo pdf' ? '#999' : '#222' }]}>
                 {pdfFile}
