@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import {
   View,
   Text,
@@ -30,6 +31,8 @@ const RegisterScreen: React.FC = () => {
   const [course, setCourse] = useState('');
   const [institution, setInstitution] = useState('');
   const [degree, setDegree] = useState('');
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [authError, setAuthError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,6 +52,38 @@ const RegisterScreen: React.FC = () => {
     return Object.keys(next).length === 0;
   };
 
+  const pickUserPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      setPhotoError('Permissao para acessar fotos e necessaria.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setUserPhoto(result.assets[0].uri);
+      setPhotoError('');
+    }
+  };
+
+  const uploadProfilePhoto = async (uri: string, userId: string) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    const ext = uri.split('.').pop() || 'jpg';
+    const path = `profiles/${userId}.${ext}`;
+    const { error } = await supabase.storage.from('profile-photos').upload(path, blob, {
+      contentType: blob.type || 'image/jpeg',
+      upsert: true,
+    });
+    if (error) throw error;
+    const { data } = supabase.storage.from('profile-photos').getPublicUrl(path);
+    return data.publicUrl;
+  };
+
   const handleRegister = async () => {
     if (!validate()) return;
     setAuthError('');
@@ -65,12 +100,22 @@ const RegisterScreen: React.FC = () => {
     }
     const userId = data.user?.id;
     if (userId) {
+      let photoUrl: string | null = null;
+      if (userPhoto) {
+        try {
+          photoUrl = await uploadProfilePhoto(userPhoto, userId);
+        } catch (err: any) {
+          setPhotoError(err?.message || 'Erro ao enviar foto.');
+        }
+      }
+
       await supabase.from('profiles').upsert({
         id: userId,
         name,
         course,
         institution,
         academic_degree: degree,
+        photo_url: photoUrl,
       });
     }
     setLoading(false);
@@ -95,6 +140,20 @@ const RegisterScreen: React.FC = () => {
         </View>
 
         <View style={styles.form}>
+          <View style={styles.photoWrapper}>
+            <TouchableOpacity onPress={pickUserPhoto} style={styles.photoButton} activeOpacity={0.85}>
+              <View style={styles.photoCircle}>
+                {userPhoto ? (
+                  <Image source={{ uri: userPhoto }} style={styles.photoImage} />
+                ) : (
+                  <Ionicons name="camera" size={28} color="#6b86f0" />
+                )}
+              </View>
+              <Text style={styles.photoText}>{userPhoto ? 'Trocar foto' : 'Adicionar foto'}</Text>
+            </TouchableOpacity>
+            {photoError ? <Text style={styles.errorText}>{photoError}</Text> : null}
+          </View>
+
           <Text style={styles.label}>Nome Completo</Text>
           <View style={styles.inputWrap}>
             <TextInput value={name} onChangeText={setName} placeholder="Seu nome completo" style={styles.input} />
@@ -213,6 +272,34 @@ const styles = StyleSheet.create({
   },
   form: {
     paddingHorizontal: 28,
+  },
+  photoWrapper: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  photoButton: {
+    alignItems: 'center',
+  },
+  photoCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderColor: '#6b86f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f4f6fb',
+    overflow: 'hidden',
+  },
+  photoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoText: {
+    marginTop: 8,
+    color: '#222',
+    fontSize: 14,
+    fontWeight: '600',
   },
   label: {
     marginBottom: 8,
