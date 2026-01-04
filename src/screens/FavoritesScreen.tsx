@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,97 +11,70 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import BottomNav from '../components/BottomNav';
+import { supabase } from '../lib/supabaseClient';
 
-interface FavoriteWork {
+interface Work {
   id: string;
-  studentName: string;
-  workTopic: string;
-  course: string;
-  institution: string;
-  academicDegree: string;
-  views: number;
-  likes: number;
+  title?: string;
+  topic?: string;
+  course?: string;
+  institution?: string;
+  academic_degree?: string;
+  cover_url?: string;
+  allow_download?: boolean;
 }
 
 const FavoritesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleNavigateToSearch = () => {
-    // Usar replace para garantir que a navegação funcione corretamente
-    navigation.replace('Search');
-  };
+  useEffect(() => {
+    const fetchWorks = async () => {
+      setLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from('works')
+        .select('*')
+        .order('created_at', { ascending: false });
+      setLoading(false);
+      if (fetchError) {
+        setError(fetchError.message || 'Erro ao carregar trabalhos.');
+      } else {
+        setError('');
+        setWorks(data || []);
+      }
+    };
+    fetchWorks();
+  }, []);
 
-  const handleOpenWork = () => {
-    navigation.navigate('ReadWork');
+  const handleOpenWork = (id: string, allow_download?: boolean) => {
+    navigation.navigate('ReadWork', { workId: id, allowDownload: allow_download });
   };
 
   const handleMessage = () => {
     navigation.navigate('Chat');
   };
 
-  // Dados de exemplo
-  const favoriteWorks: FavoriteWork[] = [
-    {
-      id: '1',
-      studentName: 'Nome do Estudante',
-      workTopic: 'Tema do Trabalho',
-      course: 'Curso',
-      institution: 'Nome da Instituição',
-      academicDegree: 'Grau Académico',
-      views: 10,
-      likes: 10,
-    },
-    {
-      id: '2',
-      studentName: 'Nome do Estudante',
-      workTopic: 'Tema do Trabalho',
-      course: 'Curso',
-      institution: 'Nome da Instituição',
-      academicDegree: 'Grau Académico',
-      views: 10,
-      likes: 10,
-    },
-    {
-      id: '3',
-      studentName: 'Nome do Estudante',
-      workTopic: 'Tema do Trabalho',
-      course: 'Curso',
-      institution: 'Nome da Instituição',
-      academicDegree: 'Grau Académico',
-      views: 10,
-      likes: 10,
-    },
-  ];
-
-  const renderFavoriteWork = ({ item }: { item: FavoriteWork }) => (
-    <TouchableOpacity style={styles.workCard} activeOpacity={0.85} onPress={handleOpenWork}>
+  const renderFavoriteWork = ({ item }: { item: Work }) => (
+    <TouchableOpacity style={styles.workCard} activeOpacity={0.85} onPress={() => handleOpenWork(item.id, item.allow_download)}>
       <View style={styles.workCover}>
-        <Text style={styles.workCoverText}>Capa do trabalho</Text>
+        {item.cover_url ? (
+          <Image source={{ uri: item.cover_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        ) : (
+          <Text style={styles.workCoverText}>Capa do trabalho</Text>
+        )}
       </View>
       <View style={styles.workDetails}>
-        <Text style={styles.studentName}>{item.studentName}</Text>
-        <Text style={styles.workDetailText}>{item.workTopic}</Text>
-        <Text style={styles.workDetailText}>{item.course}</Text>
-        <Text style={styles.workDetailText}>{item.institution}</Text>
-        <Text style={styles.academicDegree}>{item.academicDegree}</Text>
-        <View style={styles.workStats}>
-          <View style={styles.statItem}>
-            <Ionicons name="eye-outline" size={16} color="#666" />
-            <Text style={styles.statText}>{item.views}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="heart-outline" size={16} color="#666" />
-            <Text style={styles.statText}>{item.likes}</Text>
-          </View>
-        </View>
+        <Text style={styles.studentName}>{item.title || item.topic || 'Tema do Trabalho'}</Text>
+        <Text style={styles.workDetailText}>{item.course || 'Curso'}</Text>
+        <Text style={styles.workDetailText}>{item.institution || 'Instituicao'}</Text>
+        <Text style={styles.academicDegree}>{item.academic_degree || 'Grau'}</Text>
       </View>
       <View style={styles.actionsColumn}>
         <TouchableOpacity style={styles.messageButton} onPress={handleMessage} activeOpacity={0.8}>
           <Ionicons name="chatbubbles-outline" size={18} color="#fff" />
           <Text style={styles.messageButtonText}>Mensagem</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.removeButton}>
-          <Text style={styles.removeButtonText}>Remover</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -109,7 +82,6 @@ const FavoritesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Favoritos</Text>
         <View style={styles.logoContainer}>
@@ -126,16 +98,19 @@ const FavoritesScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {error ? <Text style={[styles.headerTitle, { color: '#d32f2f', fontSize: 14 }]}>{error}</Text> : null}
         <FlatList
-          data={favoriteWorks}
+          data={works}
           renderItem={renderFavoriteWork}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
           contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            loading ? <Text style={styles.workDetailText}>Carregando...</Text> : <Text style={styles.workDetailText}>Nenhum trabalho.</Text>
+          }
         />
       </ScrollView>
 
-      {/* Bottom Navigation */}
       <BottomNav active="favorites" />
     </View>
   );
@@ -229,20 +204,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 4,
   },
-  workStats: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  statText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
-  },
   actionsColumn: {
     justifyContent: 'space-between',
     alignItems: 'flex-end',
@@ -262,21 +223,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 6,
   },
-  removeButton: {
-    backgroundColor: '#6b86f0',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 14,
-  },
-  removeButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
 });
 
 export default FavoritesScreen;
-

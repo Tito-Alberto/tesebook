@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,13 +13,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import BottomNav from '../components/BottomNav';
+import { supabase } from '../lib/supabaseClient';
 
 interface Work {
   id: string;
-  studentName: string;
-  workTopic: string;
-  course: string;
-  institution: string;
+  title?: string;
+  topic?: string;
+  course?: string;
+  institution?: string;
+  cover_url?: string;
+  allow_download?: boolean;
 }
 
 type TabKey = 'Curso' | 'Instituicao';
@@ -33,122 +36,82 @@ const SearchScreen: React.FC = () => {
   const [selectedInstitution, setSelectedInstitution] = useState('');
   const [courseModalVisible, setCourseModalVisible] = useState(false);
   const [institutionModalVisible, setInstitutionModalVisible] = useState(false);
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Dados de exemplo
-  const works: Work[] = [
-    {
-      id: '1',
-      studentName: 'Nome do Estudante',
-      workTopic: 'Tema do Trabalho',
-      course: 'Curso',
-      institution: 'Nome da Instituição',
-    },
-    {
-      id: '2',
-      studentName: 'Nome do Estudante',
-      workTopic: 'Tema do Trabalho',
-      course: 'Curso',
-      institution: 'Nome da Instituição',
-    },
-    {
-      id: '3',
-      studentName: 'Nome do Estudante',
-      workTopic: 'Tema do Trabalho',
-      course: 'Curso',
-      institution: 'Nome da Instituição',
-    },
-  ];
+  const courseOptions = useMemo(() => {
+    const list = works.map((w) => w.course).filter(Boolean) as string[];
+    return Array.from(new Set(list)).sort();
+  }, [works]);
 
-  const courseOptions = [
-    'DIREITO',
-    'CIÊNCIA POLÍTICA',
-    'RELAÇÕES INTERNACIONAIS',
-    'SOCIOLOGIA',
-    'PSICOLOGIA',
-    'FILOSOFIA',
-    'HISTÓRIA',
-    'CIÊNCIAS DA EDUCAÇÃO',
-    'PEDAGOGIA',
-    'EDUCAÇÃO DE INFÂNCIA',
-    'ECONOMIA',
-    'GESTÃO DE EMPRESAS',
-    'ADMINISTRAÇÃO PÚBLICA',
-    'CONTABILIDADE',
-    'FINANÇAS',
-    'AUDITORIA',
-    'MARKETING',
-    'RECURSOS HUMANOS',
-    'COMÉRCIO INTERNACIONAL',
-    'GESTÃO DE RECURSOS HUMANOS',
-    'GESTÃO HOSPITALAR',
-    'MATEMÁTICA',
-    'FÍSICA',
-    'QUÍMICA',
-    'ESTATÍSTICA',
-    'INFORMÁTICA',
-    'ENGENHARIA INFORMÁTICA',
-    'CIÊNCIA DA COMPUTAÇÃO',
-    'SISTEMAS DE INFORMAÇÃO',
-    'TECNOLOGIAS DE INFORMAÇÃO',
-    'TELECOMUNICAÇÕES',
-    'ENGENHARIA CIVIL',
-    'ENGENHARIA MECÂNICA',
-    'ENGENHARIA ELÉTRICA',
-    'ENGENHARIA ELETROTÉCNICA',
-    'ENGENHARIA DE MINAS',
-    'ENGENHARIA GEOLÓGICA',
-    'ENGENHARIA QUÍMICA',
-    'ENGENHARIA PETROLÍFERA',
-    'ENGENHARIA AMBIENTAL',
-    'ENGENHARIA DE PRODUÇÃO',
-  ];
+  const institutionOptions = useMemo(() => {
+    const list = works.map((w) => w.institution).filter(Boolean) as string[];
+    return Array.from(new Set(list)).sort();
+  }, [works]);
 
-  const institutionOptions = [
-    'UNIVERSIDADE AGOSTINHO NETO (UAN)',
-    'UNIVERSIDADE CATÓLICA DE ANGOLA (UCAN)',
-    'UNIVERSIDADE METODISTA DE ANGOLA (UMA)',
-    'UNIVERSIDADE LUSÍADA DE ANGOLA (ULA)',
-    'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
-    'INSTITUTO SUPERIOR TÉCNICO DE ANGOLA (ISTA)',
-    'INSTITUTO SUPERIOR DE CIÊNCIAS DA EDUCAÇÃO (ISCED)',
-    'INSTITUTO SUPERIOR METODISTA DE ANGOLA (ISMA)',
-  ];
+  useEffect(() => {
+    const fetchWorks = async () => {
+      setLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from('works')
+        .select('*')
+        .order('created_at', { ascending: false });
+      setLoading(false);
+      if (fetchError) {
+        setError(fetchError.message || 'Erro ao carregar trabalhos.');
+      } else {
+        setError('');
+        setWorks(data || []);
+      }
+    };
+    fetchWorks();
+  }, []);
 
   const filteredWorks = works.filter((item) => {
     const query = searchQuery.trim().toLowerCase();
     const matchCourse =
-      !selectedCourse || item.course.toLowerCase() === selectedCourse.toLowerCase();
+      !selectedCourse || (item.course || '').toLowerCase() === selectedCourse.toLowerCase();
     const matchInstitution =
-      !selectedInstitution || item.institution.toLowerCase() === selectedInstitution.toLowerCase();
+      !selectedInstitution || (item.institution || '').toLowerCase() === selectedInstitution.toLowerCase();
     const matchQuery =
       !query ||
-      item.workTopic.toLowerCase().includes(query) ||
-      item.studentName.toLowerCase().includes(query) ||
-      item.course.toLowerCase().includes(query) ||
-      item.institution.toLowerCase().includes(query);
-
+      (item.topic || '').toLowerCase().includes(query) ||
+      (item.title || '').toLowerCase().includes(query) ||
+      (item.course || '').toLowerCase().includes(query) ||
+      (item.institution || '').toLowerCase().includes(query);
     const byTab = activeTab === 'Curso' ? matchCourse : matchInstitution;
-
     return matchCourse && matchInstitution && matchQuery && byTab;
   });
 
   const renderWorkItem = ({ item }: { item: Work }) => (
-    <TouchableOpacity style={styles.workItem} activeOpacity={0.8} onPress={() => navigation.navigate('ReadWork')}>
+    <TouchableOpacity
+      style={styles.workItem}
+      activeOpacity={0.8}
+      onPress={() =>
+        navigation.navigate('ReadWork', {
+          workId: item.id,
+          allowDownload: item.allow_download,
+        })
+      }
+    >
       <View style={styles.workCover}>
-        <Text style={styles.workCoverText}>Capa do trabalho</Text>
+        {item.cover_url ? (
+          <Image source={{ uri: item.cover_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        ) : (
+          <Text style={styles.workCoverText}>Capa do trabalho</Text>
+        )}
       </View>
       <View style={styles.workDetails}>
-        <Text style={styles.studentName}>{item.studentName}</Text>
-        <Text style={styles.workTopic}>{item.workTopic}</Text>
-        <Text style={styles.workInfo}>{item.course}</Text>
-        <Text style={styles.workInfo}>{item.institution}</Text>
+        <Text style={styles.studentName}>{item.title || item.topic || 'Tema do Trabalho'}</Text>
+        <Text style={styles.workInfo}>{item.course || 'Curso'}</Text>
+        <Text style={styles.workInfo}>{item.institution || 'Instituicao'}</Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image
@@ -159,7 +122,6 @@ const SearchScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Tabs + Search */}
       <View style={styles.tabsContainer}>
         <View style={styles.tabsRow}>
           <TouchableOpacity
@@ -239,25 +201,30 @@ const SearchScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {error ? <Text style={[styles.tabText, { color: '#d32f2f', paddingHorizontal: 16 }]}>{error}</Text> : null}
         <FlatList
           data={filteredWorks}
           renderItem={renderWorkItem}
           keyExtractor={(item) => item.id}
           scrollEnabled={false}
           contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            loading ? (
+              <Text style={styles.workInfo}>Carregando...</Text>
+            ) : (
+              <Text style={styles.workInfo}>Nenhum resultado.</Text>
+            )
+          }
         />
       </ScrollView>
 
-      {/* Bottom Navigation */}
       <BottomNav active="search" />
 
-      {/* Modal Curso */}
       <Modal
         visible={courseModalVisible}
         animationType="slide"
@@ -288,7 +255,6 @@ const SearchScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Modal Instituição */}
       <Modal
         visible={institutionModalVisible}
         animationType="slide"
@@ -312,10 +278,7 @@ const SearchScreen: React.FC = () => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setInstitutionModalVisible(false)}
-            >
+            <TouchableOpacity style={styles.modalClose} onPress={() => setInstitutionModalVisible(false)}>
               <Text style={styles.modalCloseText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
@@ -449,12 +412,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   studentName: {
-    fontSize: 16,
-    color: '#222',
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  workTopic: {
     fontSize: 16,
     color: '#222',
     fontWeight: 'bold',
