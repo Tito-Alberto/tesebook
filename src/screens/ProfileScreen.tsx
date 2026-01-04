@@ -1,29 +1,51 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { globalStyles } from '../styles';
+import { supabase } from '../lib/supabaseClient';
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [profile, setProfile] = useState<any>(null);
 
-  // Dados de exemplo do usuário
-  const userData = {
-    name: 'Nome do usuário',
-    course: 'Curso',
-    institution: 'Nome da instituição',
-    academicDegree: 'Grau academico',
-  };
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) {
+        setError('Faça login para ver o perfil.');
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userData.user.id)
+        .single();
+
+      setLoading(false);
+      if (profileError) {
+        setError(profileError.message || 'Erro ao carregar perfil.');
+      } else {
+        setError('');
+        setProfile(data);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Back Button */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -36,29 +58,33 @@ const ProfileScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Avatar */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
-            <Ionicons name="person" size={80} color="#666" />
+            {profile?.photo_url ? (
+              <Image source={{ uri: profile.photo_url }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person" size={80} color="#666" />
+            )}
           </View>
         </View>
 
-        {/* Username */}
-        <Text style={styles.username}>{userData.name}</Text>
+        <Text style={styles.username}>
+          {loading ? 'Carregando...' : profile?.name || 'Usuário'}
+        </Text>
 
-        {/* Academic Details */}
+        {error ? <Text style={[styles.detailValue, { color: '#d32f2f', textAlign: 'center' }]}>{error}</Text> : null}
+
         <View style={styles.detailsContainer}>
           <Text style={styles.detailLabel}>Curso</Text>
-          <Text style={styles.detailValue}>{userData.course}</Text>
+          <Text style={styles.detailValue}>{profile?.course || '-'}</Text>
 
           <Text style={styles.detailLabel}>Nome da instituição</Text>
-          <Text style={styles.detailValue}>{userData.institution}</Text>
+          <Text style={styles.detailValue}>{profile?.institution || '-'}</Text>
 
           <Text style={styles.detailLabel}>Grau academico</Text>
-          <Text style={styles.detailValue}>{userData.academicDegree}</Text>
+          <Text style={styles.detailValue}>{profile?.academic_degree || '-'}</Text>
         </View>
 
-        {/* Action Buttons */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={styles.primaryButton}
@@ -113,6 +139,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   username: {
     fontSize: 20,
