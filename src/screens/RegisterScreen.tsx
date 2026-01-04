@@ -15,6 +15,12 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabaseClient';
 
+const normalizeEmail = (raw: string) => {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  return trimmed.includes('@') ? trimmed : `${trimmed}@tesebook.com`;
+};
+
 const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [name, setName] = useState('');
@@ -32,7 +38,6 @@ const RegisterScreen: React.FC = () => {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = 'Digite seu nome completo.';
     if (!email.trim()) next.email = 'Digite seu email.';
-    else if (!/^\S+@\S+\.\S+$/.test(email)) next.email = 'Email invalido.';
     if (!password) next.password = 'Digite uma senha.';
     else if (password.length < 6) next.password = 'Senha precisa ter pelo menos 6 caracteres.';
     if (!confirm) next.confirm = 'Confirme sua senha.';
@@ -48,8 +53,9 @@ const RegisterScreen: React.FC = () => {
     if (!validate()) return;
     setAuthError('');
     setLoading(true);
+    const normalizedEmail = normalizeEmail(email);
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
     });
     if (error) {

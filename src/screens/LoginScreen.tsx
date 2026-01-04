@@ -13,6 +13,12 @@ import { globalStyles } from '../styles';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 
+const normalizeEmail = (raw: string) => {
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  return trimmed.includes('@') ? trimmed : `${trimmed}@tesebook.com`;
+};
+
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,7 +46,8 @@ const LoginScreen: React.FC = () => {
 
     setAuthError('');
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const normalizedEmail = normalizeEmail(email);
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     setLoading(false);
     if (error) {
       setAuthError(error.message || 'Erro ao entrar.');
