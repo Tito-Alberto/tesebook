@@ -8,17 +8,46 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
 } from 'react-native';
 import { globalStyles } from '../styles';
 import { useNavigation } from '@react-navigation/native';
+import { supabase } from '../lib/supabaseClient';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation<any>();
+
+  const handleLogin = async () => {
+    let valid = true;
+    if (!email.trim()) {
+      setEmailError('Insira o email.');
+      valid = false;
+    } else {
+      setEmailError('');
+    }
+    if (!password) {
+      setPasswordError('Insira a senha.');
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
+    if (!valid) return;
+
+    setAuthError('');
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      setAuthError(error.message || 'Erro ao entrar.');
+      return;
+    }
+    navigation.navigate('Home');
+  };
 
   return (
     <KeyboardAvoidingView
@@ -58,29 +87,15 @@ const LoginScreen: React.FC = () => {
           </View>
           {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
+          {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
+
           <TouchableOpacity
-            style={styles.primaryButton}
+            style={[styles.primaryButton, loading && { opacity: 0.7 }]}
             activeOpacity={0.85}
-            onPress={() => {
-              let valid = true;
-              if (!email.trim()) {
-                setEmailError('Insira o email.');
-                valid = false;
-              } else {
-                setEmailError('');
-              }
-              if (!password) {
-                setPasswordError('Insira a senha.');
-                valid = false;
-              } else {
-                setPasswordError('');
-              }
-              if (!valid) return;
-              // Navegar para a tela principal após login válido
-              navigation.navigate('Home');
-            }}
+            onPress={handleLogin}
+            disabled={loading}
           >
-            <Text style={styles.primaryButtonText}>Entrar</Text>
+            <Text style={styles.primaryButtonText}>{loading ? 'Entrando...' : 'Entrar'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.forgot}>
@@ -103,13 +118,13 @@ const LoginScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-    errorText: {
-      color: '#d32f2f',
-      fontSize: 13,
-      marginTop: 4,
-      marginBottom: 8,
-      textAlign: 'center',
-    },
+  errorText: {
+    color: '#d32f2f',
+    fontSize: 13,
+    marginTop: 4,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   scroll: {
     flexGrow: 1,
     justifyContent: 'flex-start',
@@ -126,9 +141,7 @@ const styles = StyleSheet.create({
     width: 340,
     height: 160,
   },
-  backButton: {
-    // removed: backButton not used on LoginScreen
-  },
+  backButton: {},
   form: {
     paddingHorizontal: 28,
   },
@@ -143,7 +156,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 14,
-    // subtle shadow
     shadowColor: '#0b63c6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
