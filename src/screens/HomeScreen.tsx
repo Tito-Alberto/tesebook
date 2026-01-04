@@ -28,9 +28,17 @@ interface Work {
   allow_download?: boolean;
 }
 
+interface SuggestedTopic {
+  id: string;
+  title: string;
+  course?: string;
+  description?: string;
+}
+
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [works, setWorks] = useState<Work[]>([]);
+  const [suggestedTopics, setSuggestedTopics] = useState<SuggestedTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -50,6 +58,23 @@ const HomeScreen: React.FC = () => {
       }
     };
     fetchWorks();
+  }, []);
+
+  useEffect(() => {
+    const fetchTopics = async () => {
+      const { data, error: fetchError } = await supabase
+        .from('suggested_topics')
+        .select('id,title,course,description')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (fetchError) {
+        // mantém erro separado dos trabalhos
+        console.warn('Erro ao carregar temas sugeridos:', fetchError.message);
+      } else {
+        setSuggestedTopics(data || []);
+      }
+    };
+    fetchTopics();
   }, []);
 
   const recentWorks = useMemo(() => works, [works]);
@@ -81,6 +106,19 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.workDetailText}>{item.academic_degree || 'Grau'}</Text>
       </View>
     </TouchableOpacity>
+  );
+
+  const renderSuggestedTopic = ({ item }: { item: SuggestedTopic }) => (
+    <View style={styles.suggestedTopicCard}>
+      <Ionicons name="bulb-outline" size={28} color="#6b86f0" />
+      <Text style={styles.suggestedTopicText}>{item.title}</Text>
+      <Text style={styles.suggestedTopicText}>{item.course || 'Curso'}</Text>
+      {item.description ? (
+        <Text style={[styles.suggestedTopicText, { color: '#444' }]} numberOfLines={2}>
+          {item.description}
+        </Text>
+      ) : null}
+    </View>
   );
 
   return (
@@ -133,6 +171,22 @@ const HomeScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigation.navigate('Search')}>
             <Ionicons name="search" size={24} color="#6b86f0" />
           </TouchableOpacity>
+        </View>
+
+        {/* Temas sugeridos */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Temas sugeridos</Text>
+          <FlatList
+            data={suggestedTopics}
+            renderItem={renderSuggestedTopic}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.horizontalList}
+            ListEmptyComponent={
+              <Text style={styles.workDetailText}>{loading ? 'Carregando...' : 'Nenhum tema.'}</Text>
+            }
+          />
         </View>
 
         <View style={styles.section}>
@@ -302,6 +356,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginBottom: 4,
+  },
+  suggestedTopicCard: {
+    width: width * 0.5,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  suggestedTopicText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
 });
 
