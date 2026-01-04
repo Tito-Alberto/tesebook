@@ -200,6 +200,11 @@ const HomeScreen: React.FC = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.horizontalList}
+            ListEmptyComponent={
+              <Text style={styles.workDetailText}>
+                {loading ? 'Carregando...' : 'Nenhum trabalho.'}
+              </Text>
+            }
           />
         </View>
 
@@ -212,6 +217,11 @@ const HomeScreen: React.FC = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.horizontalList}
+            ListEmptyComponent={
+              <Text style={styles.workDetailText}>
+                {loading ? 'Carregando...' : 'Nenhum trabalho.'}
+              </Text>
+            }
           />
         </View>
 
@@ -224,6 +234,11 @@ const HomeScreen: React.FC = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.horizontalList}
+            ListEmptyComponent={
+              <Text style={styles.workDetailText}>
+                {loading ? 'Carregando...' : 'Nenhum trabalho.'}
+              </Text>
+            }
           />
         </View>
       </ScrollView>
