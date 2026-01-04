@@ -16,6 +16,7 @@ const ProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [profile, setProfile] = useState<any>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -44,6 +45,27 @@ const ProfileScreen: React.FC = () => {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    const resolveAvatar = async () => {
+      if (profile?.photo_url) {
+        const storedUrl: string = profile.photo_url;
+        const idx = storedUrl.indexOf('profile-photos/');
+        if (idx !== -1) {
+          const path = storedUrl.slice(idx + 'profile-photos/'.length);
+          const { data, error: signError } = await supabase.storage
+            .from('profile-photos')
+            .createSignedUrl(path, 60 * 30);
+          if (!signError && data?.signedUrl) {
+            setAvatarUrl(data.signedUrl);
+            return;
+          }
+        }
+        setAvatarUrl(storedUrl);
+      }
+    };
+    resolveAvatar();
+  }, [profile]);
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -60,8 +82,8 @@ const ProfileScreen: React.FC = () => {
       >
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
-            {profile?.photo_url ? (
-              <Image source={{ uri: profile.photo_url }} style={styles.avatarImage} />
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
             ) : (
               <Ionicons name="person" size={80} color="#666" />
             )}
