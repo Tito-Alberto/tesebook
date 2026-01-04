@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { globalStyles } from '../styles';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +23,76 @@ const normalizeEmail = (raw: string) => {
   return trimmed.includes('@') ? trimmed : `${trimmed}@tesebook.com`;
 };
 
+const courseOptions = [
+  'DIREITO',
+  'CIÊNCIA POLÍTICA',
+  'RELAÇÕES INTERNACIONAIS',
+  'SOCIOLOGIA',
+  'PSICOLOGIA',
+  'FILOSOFIA',
+  'HISTÓRIA',
+  'CIÊNCIAS DA EDUCAÇÃO',
+  'PEDAGOGIA',
+  'EDUCAÇÃO DE INFÂNCIA',
+  'ECONOMIA',
+  'GESTÃO DE EMPRESAS',
+  'ADMINISTRAÇÃO PÚBLICA',
+  'CONTABILIDADE',
+  'FINANÇAS',
+  'AUDITORIA',
+  'MARKETING',
+  'RECURSOS HUMANOS',
+  'COMÉRCIO INTERNACIONAL',
+  'GESTÃO DE RECURSOS HUMANOS',
+  'GESTÃO HOSPITALAR',
+  'MATEMÁTICA',
+  'FÍSICA',
+  'QUÍMICA',
+  'ESTATÍSTICA',
+  'INFORMÁTICA',
+  'ENGENHARIA INFORMÁTICA',
+  'CIÊNCIA DA COMPUTAÇÃO',
+  'SISTEMAS DE INFORMAÇÃO',
+  'TECNOLOGIAS DE INFORMAÇÃO',
+  'TELECOMUNICAÇÕES',
+  'ENGENHARIA CIVIL',
+  'ENGENHARIA MECÂNICA',
+  'ENGENHARIA ELÉTRICA',
+  'ENGENHARIA ELETROTÉCNICA',
+  'ENGENHARIA DE MINAS',
+  'ENGENHARIA GEOLÓGICA',
+  'ENGENHARIA QUÍMICA',
+  'ENGENHARIA PETROLÍFERA',
+  'ENGENHARIA AMBIENTAL',
+  'ENGENHARIA DE PRODUÇÃO',
+];
+
+const institutionOptions = [
+  'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
+  'INSTITUTO SUPERIOR TÉCNICO DE ANGOLA (ISTA)',
+  'INSTITUTO SUPERIOR DE CIÊNCIAS DA EDUCAÇÃO (ISCED)',
+  'INSTITUTO SUPERIOR POLITÉCNICO ALVAREZ DO PACO (ISPAP)',
+  'INSTITUTO SUPERIOR METODISTA DE ANGOLA (ISMA)',
+  'INSTITUTO SUPERIOR JEAN PIAGET DE ANGOLA (ISPIAGET)',
+  'INSTITUTO SUPERIOR POLITÉCNICO GREGÓRIO SEMEDO (ISPGS)',
+  'INSTITUTO SUPERIOR POLITÉCNICO DA UNIVERSIDADE PRIVADA DE ANGOLA (ISP-UPRA)',
+  'INSTITUTO SUPERIOR POLITÉCNICO INDEPENDENTE (ISPI)',
+  'INSTITUTO SUPERIOR TÉCNICO ÓSCAR RIBAS (ISTOR)',
+  'UNIVERSIDADE AGOSTINHO NETO (UAN)',
+  'UNIVERSIDADE KATYAVALA BWILA (UKB)',
+  'UNIVERSIDADE JOSÉ EDUARDO DOS SANTOS (UJES)',
+  'UNIVERSIDADE MANDUME YA NDEMUFAYO (UMN)',
+  'UNIVERSIDADE LUEJI A’NKONDE (ULAN)',
+  'UNIVERSIDADE CUITO CUANAVALE (UCC)',
+  'UNIVERSIDADE KIMPA VITA (UKV)',
+  'UNIVERSIDADE 11 DE NOVEMBRO (UON)',
+  'UNIVERSIDADE CATÓLICA DE ANGOLA (UCAN)',
+  'UNIVERSIDADE METODISTA DE ANGOLA (UMA)',
+  'UNIVERSIDADE LUSÍADA DE ANGOLA (ULA)',
+];
+
+const degreeOptions = ['Licenciatura', 'Mestrado', 'Pós-Graduação'];
+
 const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [name, setName] = useState('');
@@ -31,6 +102,9 @@ const RegisterScreen: React.FC = () => {
   const [course, setCourse] = useState('');
   const [institution, setInstitution] = useState('');
   const [degree, setDegree] = useState('');
+  const [courseModalVisible, setCourseModalVisible] = useState(false);
+  const [institutionModalVisible, setInstitutionModalVisible] = useState(false);
+  const [degreeModalVisible, setDegreeModalVisible] = useState(false);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -202,39 +276,42 @@ const RegisterScreen: React.FC = () => {
           {errors.confirm ? <Text style={styles.errorText}>{errors.confirm}</Text> : null}
 
           <Text style={styles.label}>Curso</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              value={course}
-              onChangeText={setCourse}
-              placeholder="Seu curso"
-              style={styles.input}
-            />
+          <TouchableOpacity
+            style={styles.inputWrap}
+            activeOpacity={0.8}
+            onPress={() => setCourseModalVisible(true)}
+          >
+            <Text style={[styles.input, { color: course ? '#222' : '#888' }]}>
+              {course || 'Selecione o curso'}
+            </Text>
             <View style={styles.inputBottom} />
-          </View>
+          </TouchableOpacity>
           {errors.course ? <Text style={styles.errorText}>{errors.course}</Text> : null}
 
           <Text style={styles.label}>Instituicao</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              value={institution}
-              onChangeText={setInstitution}
-              placeholder="Nome da instituicao"
-              style={styles.input}
-            />
+          <TouchableOpacity
+            style={styles.inputWrap}
+            activeOpacity={0.8}
+            onPress={() => setInstitutionModalVisible(true)}
+          >
+            <Text style={[styles.input, { color: institution ? '#222' : '#888' }]}>
+              {institution || 'Selecione a instituição'}
+            </Text>
             <View style={styles.inputBottom} />
-          </View>
+          </TouchableOpacity>
           {errors.institution ? <Text style={styles.errorText}>{errors.institution}</Text> : null}
 
           <Text style={styles.label}>Grau Academico</Text>
-          <View style={styles.inputWrap}>
-            <TextInput
-              value={degree}
-              onChangeText={setDegree}
-              placeholder="Ex: Licenciatura"
-              style={styles.input}
-            />
+          <TouchableOpacity
+            style={styles.inputWrap}
+            activeOpacity={0.8}
+            onPress={() => setDegreeModalVisible(true)}
+          >
+            <Text style={[styles.input, { color: degree ? '#222' : '#888' }]}>
+              {degree || 'Selecione o grau'}
+            </Text>
             <View style={styles.inputBottom} />
-          </View>
+          </TouchableOpacity>
           {errors.degree ? <Text style={styles.errorText}>{errors.degree}</Text> : null}
 
           {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
@@ -249,6 +326,99 @@ const RegisterScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Modal Curso */}
+      <Modal
+        visible={courseModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCourseModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Escolha o curso</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {courseOptions.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setCourse(item);
+                    setCourseModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setCourseModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Instituicao */}
+      <Modal
+        visible={institutionModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setInstitutionModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Escolha a instituição</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {institutionOptions.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setInstitution(item);
+                    setInstitutionModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setInstitutionModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Grau */}
+      <Modal
+        visible={degreeModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setDegreeModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Escolha o grau académico</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {degreeOptions.map((item) => (
+                <TouchableOpacity
+                  key={item}
+                  style={styles.modalItem}
+                  onPress={() => {
+                    setDegree(item);
+                    setDegreeModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setDegreeModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -363,6 +533,50 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    color: '#222',
+    textAlign: 'center',
+  },
+  modalItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  modalItemText: {
+    fontSize: 15,
+    color: '#222',
+  },
+  modalClose: {
+    marginTop: 16,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    backgroundColor: '#6b86f0',
+    borderRadius: 20,
+  },
+  modalCloseText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
