@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import {
   View,
@@ -13,7 +12,77 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { globalStyles } from '../styles';
+import { supabase } from '../lib/supabaseClient';
+
+const institutionOptions = [
+  'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
+  'INSTITUTO SUPERIOR TÉCNICO DE ANGOLA (ISTA)',
+  'INSTITUTO SUPERIOR DE CIÊNCIAS DA EDUCAÇÃO (ISCED)',
+  'INSTITUTO SUPERIOR POLITÉCNICO ALVAREZ DO PACO (ISPAP)',
+  'INSTITUTO SUPERIOR METODISTA DE ANGOLA (ISMA)',
+  'INSTITUTO SUPERIOR JEAN PIAGET DE ANGOLA (ISPIAGET)',
+  'INSTITUTO SUPERIOR POLITÉCNICO GREGÓRIO SEMEDO (ISPGS)',
+  'INSTITUTO SUPERIOR POLITÉCNICO DA UNIVERSIDADE PRIVADA DE ANGOLA (ISP-UPRA)',
+  'INSTITUTO SUPERIOR POLITÉCNICO INDEPENDENTE (ISPI)',
+  'INSTITUTO SUPERIOR TÉCNICO ÓSCAR RIBAS (ISTOR)',
+  'UNIVERSIDADE AGOSTINHO NETO (UAN)',
+  'UNIVERSIDADE KATYAVALA BWILA (UKB)',
+  'UNIVERSIDADE JOSÉ EDUARDO DOS SANTOS (UJES)',
+  'UNIVERSIDADE MANDUME YA NDEMUFAYO (UMN)',
+  'UNIVERSIDADE LUEJI A’NKONDE (ULAN)',
+  'UNIVERSIDADE CUITO CUANAVALE (UCC)',
+  'UNIVERSIDADE KIMPA VITA (UKV)',
+  'UNIVERSIDADE 11 DE NOVEMBRO (UON)',
+  'UNIVERSIDADE CATÓLICA DE ANGOLA (UCAN)',
+  'UNIVERSIDADE METODISTA DE ANGOLA (UMA)',
+  'UNIVERSIDADE LUSÍADA DE ANGOLA (ULA)',
+];
+
+const courseOptions = [
+  'DIREITO',
+  'CIÊNCIA POLÍTICA',
+  'RELAÇÕES INTERNACIONAIS',
+  'SOCIOLOGIA',
+  'PSICOLOGIA',
+  'FILOSOFIA',
+  'HISTÓRIA',
+  'CIÊNCIAS DA EDUCAÇÃO',
+  'PEDAGOGIA',
+  'EDUCAÇÃO DE INFÂNCIA',
+  'ECONOMIA',
+  'GESTÃO DE EMPRESAS',
+  'ADMINISTRAÇÃO PÚBLICA',
+  'CONTABILIDADE',
+  'FINANÇAS',
+  'AUDITORIA',
+  'MARKETING',
+  'RECURSOS HUMANOS',
+  'COMÉRCIO INTERNACIONAL',
+  'GESTÃO DE RECURSOS HUMANOS',
+  'GESTÃO HOSPITALAR',
+  'MATEMÁTICA',
+  'FÍSICA',
+  'QUÍMICA',
+  'ESTATÍSTICA',
+  'INFORMÁTICA',
+  'ENGENHARIA INFORMÁTICA',
+  'CIÊNCIA DA COMPUTAÇÃO',
+  'SISTEMAS DE INFORMAÇÃO',
+  'TECNOLOGIAS DE INFORMAÇÃO',
+  'TELECOMUNICAÇÕES',
+  'ENGENHARIA CIVIL',
+  'ENGENHARIA MECÂNICA',
+  'ENGENHARIA ELÉTRICA',
+  'ENGENHARIA ELETROTÉCNICA',
+  'ENGENHARIA DE MINAS',
+  'ENGENHARIA GEOLÓGICA',
+  'ENGENHARIA QUÍMICA',
+  'ENGENHARIA PETROLÍFERA',
+  'ENGENHARIA AMBIENTAL',
+  'ENGENHARIA DE PRODUÇÃO',
+];
+
+const degreeOptions = ['Licenciatura', 'Mestrado', 'Pós-Graduação'];
 
 const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -24,83 +93,43 @@ const EditProfileScreen: React.FC = () => {
   const [institutionModalVisible, setInstitutionModalVisible] = useState(false);
   const [courseModalVisible, setCourseModalVisible] = useState(false);
   const [degreeModalVisible, setDegreeModalVisible] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const institutionOptions = [
-    'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
-    'INSTITUTO SUPERIOR TÉCNICO DE ANGOLA (ISTA)',
-    'INSTITUTO SUPERIOR DE CIÊNCIAS DA EDUCAÇÃO (ISCED)',
-    'INSTITUTO SUPERIOR POLITÉCNICO ALVAREZ DO PACO (ISPAP)',
-    'INSTITUTO SUPERIOR METODISTA DE ANGOLA (ISMA)',
-    'INSTITUTO SUPERIOR JEAN PIAGET DE ANGOLA (ISPIAGET)',
-    'INSTITUTO SUPERIOR POLITÉCNICO GREGÓRIO SEMEDO (ISPGS)',
-    'INSTITUTO SUPERIOR POLITÉCNICO DA UNIVERSIDADE PRIVADA DE ANGOLA (ISP-UPRA)',
-    'INSTITUTO SUPERIOR POLITÉCNICO INDEPENDENTE (ISPI)',
-    'INSTITUTO SUPERIOR TÉCNICO ÓSCAR RIBAS (ISTOR)',
-    'UNIVERSIDADE AGOSTINHO NETO (UAN)',
-    'UNIVERSIDADE KATYAVALA BWILA (UKB)',
-    'UNIVERSIDADE JOSÉ EDUARDO DOS SANTOS (UJES)',
-    'UNIVERSIDADE MANDUME YA NDEMUFAYO (UMN)',
-    'UNIVERSIDADE LUEJI A’NKONDE (ULAN)',
-    'UNIVERSIDADE CUITO CUANAVALE (UCC)',
-    'UNIVERSIDADE KIMPA VITA (UKV)',
-    'UNIVERSIDADE 11 DE NOVEMBRO (UON)',
-    'UNIVERSIDADE CATÓLICA DE ANGOLA (UCAN)',
-    'UNIVERSIDADE METODISTA DE ANGOLA (UMA)',
-    'UNIVERSIDADE LUSÍADA DE ANGOLA (ULA)'
-  ];
-  const courseOptions = [
-    'DIREITO',
-    'CIÊNCIA POLÍTICA',
-    'RELAÇÕES INTERNACIONAIS',
-    'SOCIOLOGIA',
-    'PSICOLOGIA',
-    'FILOSOFIA',
-    'HISTÓRIA',
-    'CIÊNCIAS DA EDUCAÇÃO',
-    'PEDAGOGIA',
-    'EDUCAÇÃO DE INFÂNCIA',
-    'ECONOMIA',
-    'GESTÃO DE EMPRESAS',
-    'ADMINISTRAÇÃO PÚBLICA',
-    'CONTABILIDADE',
-    'FINANÇAS',
-    'AUDITORIA',
-    'MARKETING',
-    'RECURSOS HUMANOS',
-    'COMÉRCIO INTERNACIONAL',
-    'GESTÃO DE RECURSOS HUMANOS',
-    'GESTÃO HOSPITALAR',
-    'MATEMÁTICA',
-    'FÍSICA',
-    'QUÍMICA',
-    'ESTATÍSTICA',
-    'INFORMÁTICA',
-    'ENGENHARIA INFORMÁTICA',
-    'CIÊNCIA DA COMPUTAÇÃO',
-    'SISTEMAS DE INFORMAÇÃO',
-    'TECNOLOGIAS DE INFORMAÇÃO',
-    'TELECOMUNICAÇÕES',
-    'ENGENHARIA CIVIL',
-    'ENGENHARIA MECÂNICA',
-    'ENGENHARIA ELÉTRICA',
-    'ENGENHARIA ELETROTÉCNICA',
-    'ENGENHARIA DE MINAS',
-    'ENGENHARIA GEOLÓGICA',
-    'ENGENHARIA QUÍMICA',
-    'ENGENHARIA PETROLÍFERA',
-    'ENGENHARIA AMBIENTAL',
-    'ENGENHARIA DE PRODUÇÃO'
-  ];
-  const degreeOptions = [
-    'Licenciatura',
-    'Mestrado',
-    'Pós-Graduação',
-  ];
+  useEffect(() => {
+    const loadProfile = async () => {
+      setLoading(true);
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) {
+        setError('Faça login para editar o perfil.');
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userData.user.id)
+        .single();
+
+      if (profileError) {
+        setError(profileError.message || 'Erro ao carregar perfil.');
+      } else if (data) {
+        setCourse(data.course || '');
+        setInstitution(data.institution || '');
+        setAcademicDegree(data.academic_degree || '');
+        if (data.photo_url) setImage(data.photo_url);
+        setError('');
+      }
+      setLoading(false);
+    };
+    loadProfile();
+  }, []);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Permissão para acessar as fotos é necessária!');
+      alert('Permissao para acessar as fotos e necessaria!');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -115,7 +144,55 @@ const EditProfileScreen: React.FC = () => {
   };
 
   const handleConfirm = () => {
-    navigation.goBack();
+    const saveProfile = async () => {
+      setLoading(true);
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user) {
+        setError('Faça login para salvar.');
+        setLoading(false);
+        return;
+      }
+
+      let photoUrl = image;
+      if (image && !image.startsWith('http')) {
+        try {
+          const response = await fetch(image);
+          const blob = await response.blob();
+          const ext = image.split('.').pop() || 'jpg';
+          const path = `profiles/${userData.user.id}.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from('profile-photos')
+            .upload(path, blob, {
+              contentType: blob.type || 'image/jpeg',
+              upsert: true,
+            });
+          if (uploadError) throw uploadError;
+          const { data } = supabase.storage.from('profile-photos').getPublicUrl(path);
+          photoUrl = data.publicUrl;
+        } catch (err: any) {
+          setError(err?.message || 'Erro ao enviar foto.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { error: updateError } = await supabase.from('profiles').upsert({
+        id: userData.user.id,
+        course,
+        institution,
+        academic_degree: academicDegree,
+        photo_url: photoUrl,
+      });
+
+      setLoading(false);
+      if (updateError) {
+        setError(updateError.message || 'Erro ao salvar perfil.');
+        return;
+      }
+      setError('');
+      navigation.goBack();
+    };
+    saveProfile();
   };
 
   return (
@@ -145,6 +222,8 @@ const EditProfileScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
+        {error ? <Text style={[styles.changePhotoText, { color: '#d32f2f' }]}>{error}</Text> : null}
+
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Curso</Text>
@@ -153,23 +232,6 @@ const EditProfileScreen: React.FC = () => {
             </TouchableOpacity>
             <View style={styles.inputLine} />
           </View>
-          <Modal visible={courseModalVisible} animationType="slide" transparent onRequestClose={() => setCourseModalVisible(false)}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Escolha o curso</Text>
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  {courseOptions.map((item) => (
-                    <TouchableOpacity key={item} style={styles.modalItem} onPress={() => { setCourse(item); setCourseModalVisible(false); }}>
-                      <Text style={styles.modalItemText}>{item}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <TouchableOpacity style={styles.modalClose} onPress={() => setCourseModalVisible(false)}>
-                  <Text style={styles.modalCloseText}>Cancelar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Nome da Instituição</Text>
@@ -178,58 +240,79 @@ const EditProfileScreen: React.FC = () => {
             </TouchableOpacity>
             <View style={styles.inputLine} />
           </View>
-          <Modal visible={institutionModalVisible} animationType="slide" transparent onRequestClose={() => setInstitutionModalVisible(false)}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Escolha a instituição</Text>
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  {institutionOptions.map((item) => (
-                    <TouchableOpacity key={item} style={styles.modalItem} onPress={() => { setInstitution(item); setInstitutionModalVisible(false); }}>
-                      <Text style={styles.modalItemText}>{item}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <TouchableOpacity style={styles.modalClose} onPress={() => setInstitutionModalVisible(false)}>
-                  <Text style={styles.modalCloseText}>Cancelar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Grau Acadêmico</Text>
             <TouchableOpacity style={styles.input} onPress={() => setDegreeModalVisible(true)}>
-              <Text style={{ color: academicDegree ? '#222' : '#888' }}>{academicDegree || 'Selecione o grau acadêmico'}</Text>
+              <Text style={{ color: academicDegree ? '#222' : '#888' }}>{academicDegree || 'Selecione o grau'}</Text>
             </TouchableOpacity>
             <View style={styles.inputLine} />
           </View>
-          <Modal visible={degreeModalVisible} animationType="slide" transparent onRequestClose={() => setDegreeModalVisible(false)}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Escolha o grau acadêmico</Text>
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  {degreeOptions.map((item) => (
-                    <TouchableOpacity key={item} style={styles.modalItem} onPress={() => { setAcademicDegree(item); setDegreeModalVisible(false); }}>
-                      <Text style={styles.modalItemText}>{item}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <TouchableOpacity style={styles.modalClose} onPress={() => setDegreeModalVisible(false)}>
-                  <Text style={styles.modalCloseText}>Cancelar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
         </View>
 
         <TouchableOpacity
-          style={styles.confirmButton}
+          style={[styles.confirmButton, loading && { opacity: 0.7 }]}
           onPress={handleConfirm}
           activeOpacity={0.85}
+          disabled={loading}
         >
-          <Text style={styles.confirmButtonText}>Confirmar</Text>
+          <Text style={styles.confirmButtonText}>{loading ? 'Salvando...' : 'Confirmar'}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <Modal visible={courseModalVisible} animationType="slide" transparent onRequestClose={() => setCourseModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Escolha o curso</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {courseOptions.map((item) => (
+                <TouchableOpacity key={item} style={styles.modalItem} onPress={() => { setCourse(item); setCourseModalVisible(false); }}>
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setCourseModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={institutionModalVisible} animationType="slide" transparent onRequestClose={() => setInstitutionModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Escolha a instituição</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {institutionOptions.map((item) => (
+                <TouchableOpacity key={item} style={styles.modalItem} onPress={() => { setInstitution(item); setInstitutionModalVisible(false); }}>
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setInstitutionModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={degreeModalVisible} animationType="slide" transparent onRequestClose={() => setDegreeModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Escolha o grau acadêmico</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {degreeOptions.map((item) => (
+                <TouchableOpacity key={item} style={styles.modalItem} onPress={() => { setAcademicDegree(item); setDegreeModalVisible(false); }}>
+                  <Text style={styles.modalItemText}>{item}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setDegreeModalVisible(false)}>
+              <Text style={styles.modalCloseText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -267,6 +350,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
     marginBottom: 16,
+    overflow: 'hidden',
   },
   changePhotoButton: {
     paddingVertical: 8,
