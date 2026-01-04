@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { supabase } from '../lib/supabaseClient';
 
 type RouteParams = {
   allowDownload?: boolean;
+  workId?: string;
 };
 
 const ReadWorkScreen: React.FC = () => {
@@ -18,11 +21,63 @@ const ReadWorkScreen: React.FC = () => {
   const route = useRoute();
   const params = (route?.params as RouteParams) || {};
   const [isFavorite, setIsFavorite] = useState(false);
-  const canDownload = params.allowDownload !== false;
+  const [work, setWork] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [downloading, setDownloading] = useState(false);
 
-  const handleDownload = () => {
-    // Aqui pode adicionar a lógica para baixar o PDF
-    console.log('Baixar PDF');
+  const canDownload = useMemo(() => {
+    if (params.allowDownload === false) return false;
+    if (work && work.allow_download === false) return false;
+    return true;
+  }, [params.allowDownload, work]);
+
+  useEffect(() => {
+    const fetchWork = async () => {
+      if (!params.workId) return;
+      setLoading(true);
+      const { data, error: fetchError } = await supabase
+        .from('works')
+        .select('*')
+        .eq('id', params.workId)
+        .single();
+      setLoading(false);
+      if (fetchError) {
+        setError(fetchError.message || 'Erro ao carregar trabalho.');
+      } else {
+        setWork(data);
+        setError('');
+      }
+    };
+    fetchWork();
+  }, [params.workId]);
+
+  const handleDownload = async () => {
+    if (!canDownload) return;
+    const pdfUrl = work?.pdf_url;
+    if (!pdfUrl) {
+      setError('Nenhum PDF disponível.');
+      return;
+    }
+    setError('');
+    setDownloading(true);
+    try {
+      let finalUrl = pdfUrl;
+      const idx = pdfUrl.indexOf('work-pdfs/');
+      if (idx !== -1) {
+        const path = pdfUrl.slice(idx + 'work-pdfs/'.length);
+        const { data, error: signError } = await supabase.storage
+          .from('work-pdfs')
+          .createSignedUrl(path, 60 * 30);
+        if (signError) throw signError;
+        if (data?.signedUrl) finalUrl = data.signedUrl;
+      }
+      await Linking.openURL(finalUrl);
+    } catch (err: any) {
+      setError(err?.message || 'Erro ao baixar o PDF.');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const toggleFavorite = () => {
@@ -31,7 +86,6 @@ const ReadWorkScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -69,33 +123,35 @@ const ReadWorkScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* PDF Content Area */}
       <View style={styles.pdfContainer}>
-        <Text style={styles.pdfText}>Arquivo PDF</Text>
-        {/* Aqui pode adicionar um visualizador de PDF real */}
+        {work?.cover_url ? (
+          <Image source={{ uri: work.cover_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        ) : (
+          <Text style={styles.pdfText}>{loading ? 'Carregando...' : work?.title || 'Arquivo PDF'}</Text>
+        )}
       </View>
 
-      {/* Download Button */}
       <TouchableOpacity
         style={[
           styles.downloadButton,
-          !canDownload && styles.downloadButtonDisabled,
+          (!canDownload || downloading) && styles.downloadButtonDisabled,
         ]}
         onPress={canDownload ? handleDownload : undefined}
         activeOpacity={canDownload ? 0.85 : 1}
-        disabled={!canDownload}
+        disabled={!canDownload || downloading}
       >
         <Text
           style={[
             styles.downloadButtonText,
-            !canDownload && styles.downloadButtonTextDisabled,
+            (!canDownload || downloading) && styles.downloadButtonTextDisabled,
           ]}
         >
-          BAIXAR
+          {downloading ? 'Baixando...' : 'BAIXAR'}
         </Text>
       </TouchableOpacity>
 
-      {/* Bottom Navigation */}
+      {error ? <Text style={[styles.pdfText, { color: '#d32f2f', padding: 12 }]}>{error}</Text> : null}
+
       <View style={styles.bottomNav}>
         <TouchableOpacity
           style={styles.navItem}
@@ -252,4 +308,3 @@ const styles = StyleSheet.create({
 });
 
 export default ReadWorkScreen;
-
