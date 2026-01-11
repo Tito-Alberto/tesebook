@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
-import { uploadToBucket } from '../lib/supabaseStorage';
+import { getFileExtension, getImageContentType, resolveStorageUrl, uploadToBucket } from '../lib/supabaseStorage';
 
 const institutionOptions = [
   'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
@@ -92,6 +92,8 @@ const EditProfileScreen: React.FC = () => {
   const [institution, setInstitution] = useState('');
   const [academicDegree, setAcademicDegree] = useState('');
   const [image, setImage] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageAsset, setImageAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [institutionModalVisible, setInstitutionModalVisible] = useState(false);
   const [courseModalVisible, setCourseModalVisible] = useState(false);
   const [degreeModalVisible, setDegreeModalVisible] = useState(false);
@@ -99,6 +101,7 @@ const EditProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const loadProfile = async () => {
       setLoading(true);
       try {
@@ -107,6 +110,7 @@ const EditProfileScreen: React.FC = () => {
           error: userError,
         } = await supabase.auth.getUser();
         if (userError || !user) {
+          if (!active) return;
           setError('Faca login para editar o perfil.');
           setLoading(false);
           return;
@@ -117,17 +121,28 @@ const EditProfileScreen: React.FC = () => {
           .eq('id', user.id)
           .single();
         if (profileError) throw profileError;
+        if (!active) return;
         setCourse(data?.course || '');
         setInstitution(data?.institution || '');
         setAcademicDegree(data?.academic_degree || '');
-        setImage(data?.photo_url || null);
-        setError('');
+        const photoUrl = data?.photo_url || null;
+        setImage(photoUrl);
+        if (photoUrl) {
+          const resolvedUrl = await resolveStorageUrl(photoUrl);
+          if (active) setImagePreview(resolvedUrl);
+        } else {
+          setImagePreview(null);
+        }
+        if (active) setError('');
       } catch (err: any) {
-        setError(err?.message || 'Erro ao carregar perfil.');
+        if (active) setError(err?.message || 'Erro ao carregar perfil.');
       }
-      setLoading(false);
+      if (active) setLoading(false);
     };
     loadProfile();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const pickImage = async () => {
@@ -143,7 +158,11 @@ const EditProfileScreen: React.FC = () => {
       quality: 1,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      const uri = asset.uri;
+      setImage(uri);
+      setImagePreview(uri);
+      setImageAsset(asset);
     }
   };
 
@@ -160,11 +179,32 @@ const EditProfileScreen: React.FC = () => {
         return;
       }
 
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token || null;
+
       let photoUrl = image;
       if (image && !image.startsWith('http')) {
-        const ext = image.split('.').pop() || 'jpg';
+        const ext = getFileExtension(imageAsset?.fileName || imageAsset?.uri || image) || 'jpg';
         const path = `${user.id}.${ext}`;
-        photoUrl = await uploadToBucket(image, 'profile-photos', path, 'image/jpeg');
+        const contentType = getImageContentType(imageAsset?.fileName || imageAsset?.uri || image, imageAsset?.mimeType);
+        try {
+          photoUrl = await uploadToBucket(
+            image,
+            'profile-photos',
+            path,
+            contentType,
+            null,
+            true,
+            accessToken,
+          );
+        } catch (err: any) {
+          const message = `Falha no upload da foto: ${err?.message || 'erro desconhecido'}`;
+          setError(message);
+          setLoading(false);
+          return;
+        }
       }
 
       const { error: updateError } = await supabase
@@ -176,11 +216,19 @@ const EditProfileScreen: React.FC = () => {
           photo_url: photoUrl,
         })
         .eq('id', user.id);
-      if (updateError) throw updateError;
+      if (updateError) {
+        const message = `Falha ao salvar perfil: ${updateError.message}`;
+        setError(message);
+        setLoading(false);
+        return;
+      }
       setError('');
+      setLoading(false);
+      Alert.alert('Sucesso', 'Perfil alterado com sucesso!');
       navigation.goBack();
     } catch (err: any) {
-      setError(err?.message || 'Erro ao salvar perfil.');
+      const message = err?.message || 'Erro ao salvar perfil.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -202,8 +250,11 @@ const EditProfileScreen: React.FC = () => {
       >
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
-            {image ? (
-              <Image source={{ uri: image }} style={{ width: 140, height: 140, borderRadius: 70 }} />
+            {imagePreview ? (
+              <Image
+                source={{ uri: imagePreview }}
+                style={{ width: 140, height: 140, borderRadius: 70 }}
+              />
             ) : (
               <Ionicons name='person' size={80} color='#666' />
             )}

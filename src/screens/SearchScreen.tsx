@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
+import { resolveStorageUrl } from '../lib/supabaseStorage';
 
 interface Work {
   id: string;
@@ -59,7 +60,14 @@ const SearchScreen: React.FC = () => {
           .order('created_at', { ascending: false });
         if (worksError) throw worksError;
         setError('');
-        setWorks((data || []) as Work[]);
+        const resolvedWorks = await Promise.all(
+          (data || []).map(async (work) => {
+            if (!work.cover_url) return work;
+            const resolvedUrl = await resolveStorageUrl(work.cover_url);
+            return { ...work, cover_url: resolvedUrl || work.cover_url };
+          }),
+        );
+        setWorks(resolvedWorks as Work[]);
       } catch (err: any) {
         setError(err?.message || 'Erro ao carregar trabalhos.');
         setWorks([]);

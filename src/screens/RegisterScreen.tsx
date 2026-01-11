@@ -11,12 +11,13 @@ import {
   Platform,
   ScrollView,
   Modal,
+  Alert,
 } from 'react-native';
 import { globalStyles } from '../styles';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabaseClient';
-import { uploadToBucket } from '../lib/supabaseStorage';
+import { getFileExtension, getImageContentType, uploadToBucket } from '../lib/supabaseStorage';
 
 const normalizeEmail = (raw: string) => {
   const trimmed = raw.trim().toLowerCase();
@@ -118,6 +119,7 @@ const RegisterScreen: React.FC = () => {
   const [institutionModalVisible, setInstitutionModalVisible] = useState(false);
   const [degreeModalVisible, setDegreeModalVisible] = useState(false);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
+  const [userPhotoAsset, setUserPhotoAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [photoError, setPhotoError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [authError, setAuthError] = useState('');
@@ -154,7 +156,9 @@ const RegisterScreen: React.FC = () => {
       quality: 0.8,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setUserPhoto(result.assets[0].uri);
+      const asset = result.assets[0];
+      setUserPhoto(asset.uri);
+      setUserPhotoAsset(asset);
       setPhotoError('');
     }
   };
@@ -213,15 +217,39 @@ const RegisterScreen: React.FC = () => {
         setLoading(false);
         return;
       }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token || null;
 
       let photoUrl: string | null = null;
       if (userPhoto) {
         try {
-          const ext = userPhoto.split('.').pop() || 'jpg';
+          const ext = getFileExtension(userPhotoAsset?.fileName || userPhotoAsset?.uri || userPhoto) || 'jpg';
           const path = `${data.user.id}.${ext}`;
-          photoUrl = await uploadToBucket(userPhoto, 'profile-photos', path, 'image/jpeg');
+          const contentType = getImageContentType(
+            userPhotoAsset?.fileName || userPhotoAsset?.uri || userPhoto,
+            userPhotoAsset?.mimeType,
+          );
+          try {
+            photoUrl = await uploadToBucket(
+              userPhoto,
+              'profile-photos',
+              path,
+              contentType,
+              null,
+              true,
+              accessToken,
+            );
+          } catch (err: any) {
+            const message = `Falha no upload da foto: ${err?.message || 'erro desconhecido'}`;
+            setPhotoError(message);
+            setLoading(false);
+            return;
+          }
         } catch (err: any) {
-          setPhotoError(err?.message || 'Erro ao enviar foto.');
+          const message = err?.message || 'Erro ao enviar foto.';
+          setPhotoError(message);
         }
       }
 
@@ -235,11 +263,18 @@ const RegisterScreen: React.FC = () => {
       };
 
       const { error: profileError } = await supabase.from('profiles').insert(profile);
-      if (profileError) throw profileError;
+      if (profileError) {
+        const message = `Falha ao salvar perfil: ${profileError.message}`;
+        setAuthError(message);
+        setLoading(false);
+        return;
+      }
 
       await supabase.auth.signOut();
       setAuthError('Conta criada. Faça login para entrar.');
+      setAuthError('');
       setResendEmail(normalizedEmail);
+      Alert.alert('Sucesso', 'Cadastro efetuado com sucesso!');
       navigation.navigate('Login');
     } catch (err: any) {
       if (EMAIL_NOT_CONFIRMED_REGEX.test(err?.message || '')) {
@@ -292,7 +327,10 @@ const RegisterScreen: React.FC = () => {
             <TouchableOpacity onPress={pickUserPhoto} style={styles.photoButton} activeOpacity={0.85}>
               <View style={styles.photoCircle}>
                 {userPhoto ? (
-                  <Image source={{ uri: userPhoto }} style={styles.photoImage} />
+                  <Image
+                    source={{ uri: userPhoto }}
+                    style={styles.photoImage}
+                  />
                 ) : (
                   <Ionicons name="camera" size={28} color="#6b86f0" />
                 )}

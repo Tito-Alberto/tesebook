@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
+import { resolveStorageUrl } from '../lib/supabaseStorage';
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -50,10 +51,19 @@ const ProfileScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    let active = true;
     const resolveAvatar = async () => {
-      if (profile?.photo_url) setAvatarUrl(profile.photo_url);
+      if (!profile?.photo_url) {
+        if (active) setAvatarUrl(null);
+        return;
+      }
+      const resolvedUrl = await resolveStorageUrl(profile.photo_url);
+      if (active) setAvatarUrl(resolvedUrl);
     };
     resolveAvatar();
+    return () => {
+      active = false;
+    };
   }, [profile]);
 
   return (
@@ -73,7 +83,10 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
             {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              <Image
+                source={{ uri: avatarUrl }}
+                style={styles.avatarImage}
+              />
             ) : (
               <Ionicons name="person" size={80} color="#666" />
             )}
@@ -112,6 +125,17 @@ const ProfileScreen: React.FC = () => {
             onPress={() => navigation.navigate('AddTopic')}
           >
             <Text style={styles.secondaryButtonText}>Sugerir Temas</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.logoutButton}
+            activeOpacity={0.85}
+            onPress={async () => {
+              await supabase.auth.signOut();
+              navigation.navigate('Login');
+            }}
+          >
+            <Text style={styles.logoutButtonText}>Terminar sessão</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -186,7 +210,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     width: '100%',
     backgroundColor: '#6b86f0',
-    paddingVertical: 16,
+    paddingVertical: 6,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
@@ -199,7 +223,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 13,
     fontWeight: '700',
   },
   secondaryButton: {
@@ -207,14 +231,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderWidth: 2,
     borderColor: '#6b86f0',
-    paddingVertical: 16,
+    paddingVertical: 6,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryButtonText: {
     color: '#6b86f0',
-    fontSize: 18,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  logoutButton: {
+    width: '100%',
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#e53935',
+    paddingVertical: 6,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 72,
+  },
+  logoutButtonText: {
+    color: '#e53935',
+    fontSize: 13,
     fontWeight: '700',
   },
 });

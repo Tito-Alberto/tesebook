@@ -102,7 +102,8 @@ const AddTopicScreen: React.FC = () => {
       setTopic('');
       setCourse('');
       setDescription('');
-      Alert.alert('Tema enviado', 'Sua sugestao ja aparece em Temas sugeridos.');
+      setFormError('');
+      Alert.alert('Sucesso', 'O seu tema foi sugerido!');
       navigation.navigate('MainTabs', { screen: 'Home' });
     } catch (err: any) {
       setFormError(err?.message || 'Nao foi possivel salvar sua sugestao.');

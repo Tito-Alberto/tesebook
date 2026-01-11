@@ -9,11 +9,12 @@ import {
   ScrollView,
   TextInput,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
-import { uploadToBucket } from '../lib/supabaseStorage';
+import { getFileExtension, getImageContentType, uploadToBucket } from '../lib/supabaseStorage';
 
 const AddWorkScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -23,6 +24,7 @@ const AddWorkScreen: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [allowDownload, setAllowDownload] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [coverAsset, setCoverAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [uploading, setUploading] = useState(false);
 
@@ -41,7 +43,9 @@ const AddWorkScreen: React.FC = () => {
     });
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setCoverImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      setCoverImage(asset.uri);
+      setCoverAsset(asset);
     }
   };
 
@@ -87,16 +91,52 @@ const AddWorkScreen: React.FC = () => {
         setUploading(false);
         return;
       }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const accessToken = session?.access_token || null;
 
-      const pdfExt = pdfUri.split('.').pop() || 'pdf';
+      const pdfExt = getFileExtension(pdfFile) || getFileExtension(pdfUri) || 'pdf';
       const pdfPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${pdfExt}`;
-      const pdfUrl = await uploadToBucket(pdfUri, 'work-pdfs', pdfPath, 'application/pdf');
+      let pdfUrl: string | null = null;
+      try {
+        pdfUrl = await uploadToBucket(
+          pdfUri,
+          'work-pdfs',
+          pdfPath,
+          'application/pdf',
+          null,
+          true,
+          accessToken,
+        );
+      } catch (err: any) {
+        const message = `Falha no upload do PDF: ${err?.message || 'erro desconhecido'}`;
+        setErrorMessage(message);
+        setUploading(false);
+        return;
+      }
 
       let coverUrl: string | null = null;
       if (coverImage) {
-        const coverExt = coverImage.split('.').pop() || 'jpg';
+        const coverExt = getFileExtension(coverAsset?.fileName || coverAsset?.uri || coverImage) || 'jpg';
         const coverPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${coverExt}`;
-        coverUrl = await uploadToBucket(coverImage, 'work-covers', coverPath, 'image/jpeg');
+        const coverType = getImageContentType(coverAsset?.fileName || coverAsset?.uri || coverImage, coverAsset?.mimeType);
+        try {
+          coverUrl = await uploadToBucket(
+            coverImage,
+            'work-covers',
+            coverPath,
+            coverType,
+            null,
+            true,
+            accessToken,
+          );
+      } catch (err: any) {
+        const message = `Falha no upload da capa: ${err?.message || 'erro desconhecido'}`;
+        setErrorMessage(message);
+        setUploading(false);
+        return;
+      }
       }
 
       const { error } = await supabase.from('works').insert({
@@ -110,11 +150,19 @@ const AddWorkScreen: React.FC = () => {
         pdf_url: pdfUrl,
         allow_download: allowDownload === 'sim',
       });
-      if (error) throw error;
-
+      if (error) {
+        const message = `Falha ao salvar trabalho: ${error.message}`;
+        setErrorMessage(message);
+        setUploading(false);
+        return;
+      }
+      setErrorMessage('');
+      setUploading(false);
+      Alert.alert('Sucesso', 'Trabalho adicionado com sucesso!');
       navigation.navigate('MainTabs', { screen: 'Home' });
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Erro ao enviar arquivos.');
+      const message = err?.message || 'Erro ao enviar arquivos.';
+      setErrorMessage(message);
     } finally {
       setUploading(false);
     }
@@ -154,7 +202,10 @@ const AddWorkScreen: React.FC = () => {
           onPress={pickCoverImage}
         >
           {coverImage ? (
-            <Image source={{ uri: coverImage }} style={styles.coverPhotoImage} />
+            <Image
+              source={{ uri: coverImage }}
+              style={styles.coverPhotoImage}
+            />
           ) : (
             <Text style={styles.coverPhotoText}>Adicionar foto da capa do trabalho</Text>
           )}
@@ -202,9 +253,9 @@ const AddWorkScreen: React.FC = () => {
             </View>
           </View>
 
-          {errorMessage ? (
-            <Text style={[styles.radioText, { color: '#d32f2f', marginTop: 8 }]}>{errorMessage}</Text>
-          ) : null}
+        {errorMessage ? (
+          <Text style={[styles.radioText, { color: '#d32f2f', marginTop: 8 }]}>{errorMessage}</Text>
+        ) : null}
         </View>
 
         <View style={styles.buttonsContainer}>

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { globalStyles } from '../styles';
 import { useNavigation } from '@react-navigation/native';
@@ -127,6 +128,13 @@ const LoginScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={{ flex: 1 }}>
+        {loading ? (
+          <View style={styles.loadingOverlay} pointerEvents="auto">
+            <View style={styles.loadingCard}>
+              <ActivityIndicator size="small" color="#6b86f0" />
+            </View>
+          </View>
+        ) : null}
         <View style={styles.top}>
           <Image source={require('../../assets/tesebook.png')} style={styles.logo} resizeMode="contain" />
         </View>
@@ -311,6 +319,30 @@ const styles = StyleSheet.create({
   resendButtonText: {
     color: '#1f3aa6',
     fontWeight: '700',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(0,0,0,0)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  loadingCard: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });
 

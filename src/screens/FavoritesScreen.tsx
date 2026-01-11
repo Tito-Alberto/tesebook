@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
+import { resolveStorageUrl } from '../lib/supabaseStorage';
 
 interface Work {
   id: string;
@@ -68,7 +69,15 @@ const FavoritesScreen: React.FC = () => {
           if (worksError) throw worksError;
           if (!isActive) return;
           setError('');
-          setWorks((worksData || []) as Work[]);
+          const resolvedWorks = await Promise.all(
+            (worksData || []).map(async (work) => {
+              if (!work.cover_url) return work;
+              const resolvedUrl = await resolveStorageUrl(work.cover_url);
+              return { ...work, cover_url: resolvedUrl || work.cover_url };
+            }),
+          );
+          if (!isActive) return;
+          setWorks(resolvedWorks as Work[]);
         } catch (err: any) {
           if (!isActive) return;
           setError(err?.message || 'Erro ao carregar favoritos.');

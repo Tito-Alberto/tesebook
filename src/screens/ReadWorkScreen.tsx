@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
+import { resolveStorageUrl } from '../lib/supabaseStorage';
 
 type RouteParams = {
   allowDownload?: boolean;
@@ -43,7 +44,13 @@ const ReadWorkScreen: React.FC = () => {
           .eq('id', params.workId)
           .single();
         if (workError) throw workError;
-        setWork(data);
+        const resolvedCover = data?.cover_url ? await resolveStorageUrl(data.cover_url) : null;
+        const resolvedPdf = data?.pdf_url ? await resolveStorageUrl(data.pdf_url) : null;
+        setWork({
+          ...data,
+          cover_url: resolvedCover || data?.cover_url,
+          pdf_url: resolvedPdf || data?.pdf_url,
+        });
         setError('');
       } catch (err: any) {
         setError(err?.message || 'Erro ao carregar trabalho.');
@@ -66,7 +73,8 @@ const ReadWorkScreen: React.FC = () => {
     try {
       await Linking.openURL(pdfUrl);
     } catch (err: any) {
-      setError(err?.message || 'Erro ao baixar o PDF.');
+      const message = err?.message || 'Erro ao baixar o PDF.';
+      setError(message);
     } finally {
       setDownloading(false);
     }
@@ -117,7 +125,11 @@ const ReadWorkScreen: React.FC = () => {
 
       <View style={styles.pdfContainer}>
         {work?.cover_url ? (
-          <Image source={{ uri: work.cover_url }} style={{ width: '100%', height: '100%' }} resizeMode='cover' />
+          <Image
+            source={{ uri: work.cover_url }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode='cover'
+          />
         ) : (
           <Text style={styles.pdfText}>{loading ? 'Carregando...' : work?.title || 'Arquivo PDF'}</Text>
         )}
