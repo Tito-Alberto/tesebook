@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { globalStyles } from '../styles';
 import { supabase } from '../lib/supabaseClient';
+import { uploadToBucket } from '../lib/supabaseStorage';
 
 const AddWorkScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -61,18 +61,6 @@ const AddWorkScreen: React.FC = () => {
     }
   };
 
-  const uploadFile = async (uri: string, bucket: string, path: string, contentType: string) => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const { error } = await supabase.storage.from(bucket).upload(path, blob, {
-      contentType,
-      upsert: true,
-    });
-    if (error) throw error;
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    return data.publicUrl;
-  };
-
   const handleAdd = async () => {
     if (!topic.trim()) {
       setErrorMessage('Digite o tema.');
@@ -89,27 +77,30 @@ const AddWorkScreen: React.FC = () => {
     setErrorMessage('');
     setUploading(true);
 
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData?.user) {
-      setErrorMessage('Faca login para adicionar um trabalho.');
-      setUploading(false);
-      return;
-    }
-
     try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        setErrorMessage('Faca login para adicionar um trabalho.');
+        setUploading(false);
+        return;
+      }
+
       const pdfExt = pdfUri.split('.').pop() || 'pdf';
-      const pdfPath = `pdfs/${Date.now()}-${Math.random().toString(36).slice(2)}.${pdfExt}`;
-      const pdfUrl = await uploadFile(pdfUri, 'work-pdfs', pdfPath, 'application/pdf');
+      const pdfPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${pdfExt}`;
+      const pdfUrl = await uploadToBucket(pdfUri, 'work-pdfs', pdfPath, 'application/pdf');
 
       let coverUrl: string | null = null;
       if (coverImage) {
         const coverExt = coverImage.split('.').pop() || 'jpg';
-        const coverPath = `covers/${Date.now()}-${Math.random().toString(36).slice(2)}.${coverExt}`;
-        coverUrl = await uploadFile(coverImage, 'work-covers', coverPath, 'image/jpeg');
+        const coverPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${coverExt}`;
+        coverUrl = await uploadToBucket(coverImage, 'work-covers', coverPath, 'image/jpeg');
       }
 
-      const { error: insertError } = await supabase.from('works').insert({
-        user_id: userData.user.id,
+      const { error } = await supabase.from('works').insert({
+        user_id: user.id,
         title: topic,
         topic,
         course: '',
@@ -119,14 +110,9 @@ const AddWorkScreen: React.FC = () => {
         pdf_url: pdfUrl,
         allow_download: allowDownload === 'sim',
       });
+      if (error) throw error;
 
-      if (insertError) {
-        setErrorMessage(insertError.message || 'Erro ao salvar trabalho.');
-      } else {
-        navigation.navigate('ReadWork', {
-          allowDownload: allowDownload === 'sim',
-        });
-      }
+      navigation.navigate('MainTabs', { screen: 'Home' });
     } catch (err: any) {
       setErrorMessage(err?.message || 'Erro ao enviar arquivos.');
     } finally {

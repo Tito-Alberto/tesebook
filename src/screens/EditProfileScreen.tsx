@@ -9,10 +9,12 @@ import {
   TextInput,
   Modal,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
+import { uploadToBucket } from '../lib/supabaseStorage';
 
 const institutionOptions = [
   'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
@@ -40,49 +42,49 @@ const institutionOptions = [
 
 const courseOptions = [
   'DIREITO',
-  'CIÊNCIA POLÍTICA',
-  'RELAÇÕES INTERNACIONAIS',
+  'CIENCIA POLITICA',
+  'RELACOES INTERNACIONAIS',
   'SOCIOLOGIA',
   'PSICOLOGIA',
   'FILOSOFIA',
-  'HISTÓRIA',
-  'CIÊNCIAS DA EDUCAÇÃO',
+  'HISTORIA',
+  'CIENCIAS DA EDUCACAO',
   'PEDAGOGIA',
-  'EDUCAÇÃO DE INFÂNCIA',
+  'EDUCACAO DE INFANCIA',
   'ECONOMIA',
-  'GESTÃO DE EMPRESAS',
-  'ADMINISTRAÇÃO PÚBLICA',
+  'GESTAO DE EMPRESAS',
+  'ADMINISTRACAO PUBLICA',
   'CONTABILIDADE',
-  'FINANÇAS',
+  'FINANCAS',
   'AUDITORIA',
   'MARKETING',
   'RECURSOS HUMANOS',
-  'COMÉRCIO INTERNACIONAL',
-  'GESTÃO DE RECURSOS HUMANOS',
-  'GESTÃO HOSPITALAR',
-  'MATEMÁTICA',
-  'FÍSICA',
-  'QUÍMICA',
-  'ESTATÍSTICA',
-  'INFORMÁTICA',
-  'ENGENHARIA INFORMÁTICA',
-  'CIÊNCIA DA COMPUTAÇÃO',
-  'SISTEMAS DE INFORMAÇÃO',
-  'TECNOLOGIAS DE INFORMAÇÃO',
-  'TELECOMUNICAÇÕES',
+  'COMERCIO INTERNACIONAL',
+  'GESTAO DE RECURSOS HUMANOS',
+  'GESTAO HOSPITALAR',
+  'MATEMATICA',
+  'FISICA',
+  'QUIMICA',
+  'ESTATISTICA',
+  'INFORMATICA',
+  'ENGENHARIA INFORMATICA',
+  'CIENCIA DA COMPUTACAO',
+  'SISTEMAS DE INFORMACAO',
+  'TECNOLOGIAS DE INFORMACAO',
+  'TELECOMUNICACOES',
   'ENGENHARIA CIVIL',
-  'ENGENHARIA MECÂNICA',
-  'ENGENHARIA ELÉTRICA',
-  'ENGENHARIA ELETROTÉCNICA',
+  'ENGENHARIA MECANICA',
+  'ENGENHARIA ELETRICA',
+  'ENGENHARIA ELETROTECNICA',
   'ENGENHARIA DE MINAS',
-  'ENGENHARIA GEOLÓGICA',
-  'ENGENHARIA QUÍMICA',
-  'ENGENHARIA PETROLÍFERA',
+  'ENGENHARIA GEOLOGICA',
+  'ENGENHARIA QUIMICA',
+  'ENGENHARIA PETROLIFERA',
   'ENGENHARIA AMBIENTAL',
-  'ENGENHARIA DE PRODUÇÃO',
+  'ENGENHARIA DE PRODUCAO',
 ];
 
-const degreeOptions = ['Licenciatura', 'Mestrado', 'Pós-Graduação'];
+const degreeOptions = ['Licenciatura', 'Mestrado', 'Pos-Graduação'];
 
 const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -99,27 +101,29 @@ const EditProfileScreen: React.FC = () => {
   useEffect(() => {
     const loadProfile = async () => {
       setLoading(true);
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData?.user) {
-        setError('Faça login para editar o perfil.');
-        setLoading(false);
-        return;
-      }
-
-      const { data, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userData.user.id)
-        .single();
-
-      if (profileError) {
-        setError(profileError.message || 'Erro ao carregar perfil.');
-      } else if (data) {
-        setCourse(data.course || '');
-        setInstitution(data.institution || '');
-        setAcademicDegree(data.academic_degree || '');
-        if (data.photo_url) setImage(data.photo_url);
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        if (userError || !user) {
+          setError('Faca login para editar o perfil.');
+          setLoading(false);
+          return;
+        }
+        const { data, error: profileError } = await supabase
+          .from('profiles')
+          .select('course,institution,academic_degree,photo_url')
+          .eq('id', user.id)
+          .single();
+        if (profileError) throw profileError;
+        setCourse(data?.course || '');
+        setInstitution(data?.institution || '');
+        setAcademicDegree(data?.academic_degree || '');
+        setImage(data?.photo_url || null);
         setError('');
+      } catch (err: any) {
+        setError(err?.message || 'Erro ao carregar perfil.');
       }
       setLoading(false);
     };
@@ -143,56 +147,43 @@ const EditProfileScreen: React.FC = () => {
     }
   };
 
-  const handleConfirm = () => {
-    const saveProfile = async () => {
-      setLoading(true);
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData?.user) {
-        setError('Faça login para salvar.');
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        setError('Faca login para salvar.');
         setLoading(false);
         return;
       }
 
       let photoUrl = image;
       if (image && !image.startsWith('http')) {
-        try {
-          const response = await fetch(image);
-          const blob = await response.blob();
-          const ext = image.split('.').pop() || 'jpg';
-          const path = `profiles/${userData.user.id}.${ext}`;
-          const { error: uploadError } = await supabase.storage
-            .from('profile-photos')
-            .upload(path, blob, {
-              contentType: blob.type || 'image/jpeg',
-              upsert: true,
-            });
-          if (uploadError) throw uploadError;
-          const { data } = supabase.storage.from('profile-photos').getPublicUrl(path);
-          photoUrl = data.publicUrl;
-        } catch (err: any) {
-          setError(err?.message || 'Erro ao enviar foto.');
-          setLoading(false);
-          return;
-        }
+        const ext = image.split('.').pop() || 'jpg';
+        const path = `${user.id}.${ext}`;
+        photoUrl = await uploadToBucket(image, 'profile-photos', path, 'image/jpeg');
       }
 
-      const { error: updateError } = await supabase.from('profiles').upsert({
-        id: userData.user.id,
-        course,
-        institution,
-        academic_degree: academicDegree,
-        photo_url: photoUrl,
-      });
-
-      setLoading(false);
-      if (updateError) {
-        setError(updateError.message || 'Erro ao salvar perfil.');
-        return;
-      }
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          course,
+          institution,
+          academic_degree: academicDegree,
+          photo_url: photoUrl,
+        })
+        .eq('id', user.id);
+      if (updateError) throw updateError;
       setError('');
       navigation.goBack();
-    };
-    saveProfile();
+    } catch (err: any) {
+      setError(err?.message || 'Erro ao salvar perfil.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -202,7 +193,7 @@ const EditProfileScreen: React.FC = () => {
         onPress={() => navigation.goBack()}
         hitSlop={{ top: 24, left: 24, right: 24, bottom: 24 }}
       >
-        <Ionicons name="arrow-back" size={28} color="#111" />
+        <Ionicons name='arrow-back' size={28} color='#111' />
       </TouchableOpacity>
 
       <ScrollView
@@ -214,7 +205,7 @@ const EditProfileScreen: React.FC = () => {
             {image ? (
               <Image source={{ uri: image }} style={{ width: 140, height: 140, borderRadius: 70 }} />
             ) : (
-              <Ionicons name="person" size={80} color="#666" />
+              <Ionicons name='person' size={80} color='#666' />
             )}
           </View>
           <TouchableOpacity style={styles.changePhotoButton} onPress={pickImage}>
@@ -234,15 +225,15 @@ const EditProfileScreen: React.FC = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nome da Instituição</Text>
+            <Text style={styles.label}>Nome da Instituicao</Text>
             <TouchableOpacity style={styles.input} onPress={() => setInstitutionModalVisible(true)}>
-              <Text style={{ color: institution ? '#222' : '#888' }}>{institution || 'Selecione a instituição'}</Text>
+              <Text style={{ color: institution ? '#222' : '#888' }}>{institution || 'Selecione a instituicao'}</Text>
             </TouchableOpacity>
             <View style={styles.inputLine} />
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Grau Acadêmico</Text>
+            <Text style={styles.label}>Grau Academico</Text>
             <TouchableOpacity style={styles.input} onPress={() => setDegreeModalVisible(true)}>
               <Text style={{ color: academicDegree ? '#222' : '#888' }}>{academicDegree || 'Selecione o grau'}</Text>
             </TouchableOpacity>
@@ -260,7 +251,7 @@ const EditProfileScreen: React.FC = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      <Modal visible={courseModalVisible} animationType="slide" transparent onRequestClose={() => setCourseModalVisible(false)}>
+      <Modal visible={courseModalVisible} animationType='slide' transparent onRequestClose={() => setCourseModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Escolha o curso</Text>
@@ -278,10 +269,10 @@ const EditProfileScreen: React.FC = () => {
         </View>
       </Modal>
 
-      <Modal visible={institutionModalVisible} animationType="slide" transparent onRequestClose={() => setInstitutionModalVisible(false)}>
+      <Modal visible={institutionModalVisible} animationType='slide' transparent onRequestClose={() => setInstitutionModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Escolha a instituição</Text>
+            <Text style={styles.modalTitle}>Escolha a instituicao</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               {institutionOptions.map((item) => (
                 <TouchableOpacity key={item} style={styles.modalItem} onPress={() => { setInstitution(item); setInstitutionModalVisible(false); }}>
@@ -296,10 +287,10 @@ const EditProfileScreen: React.FC = () => {
         </View>
       </Modal>
 
-      <Modal visible={degreeModalVisible} animationType="slide" transparent onRequestClose={() => setDegreeModalVisible(false)}>
+      <Modal visible={degreeModalVisible} animationType='slide' transparent onRequestClose={() => setDegreeModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Escolha o grau acadêmico</Text>
+            <Text style={styles.modalTitle}>Escolha o grau academico</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               {degreeOptions.map((item) => (
                 <TouchableOpacity key={item} style={styles.modalItem} onPress={() => { setAcademicDegree(item); setDegreeModalVisible(false); }}>
@@ -351,6 +342,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     marginBottom: 16,
     overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   changePhotoButton: {
     paddingVertical: 8,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import BottomNav from '../components/BottomNav';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 
 const { width } = Dimensions.get('window');
@@ -41,42 +40,76 @@ const HomeScreen: React.FC = () => {
   const [suggestedTopics, setSuggestedTopics] = useState<SuggestedTopic[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const goToTab = (screen: string) => {
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.navigate('MainTabs', { screen });
+    } else {
+      navigation.navigate(screen);
+    }
+  };
+  const goToStack = (screen: string) => {
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.navigate(screen);
+    } else {
+      navigation.navigate(screen);
+    }
+  };
 
-  useEffect(() => {
-    const fetchWorks = async () => {
-      setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('works')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setLoading(false);
-      if (fetchError) {
-        setError(fetchError.message || 'Erro ao carregar trabalhos.');
-      } else {
-        setError('');
-        setWorks(data || []);
-      }
-    };
-    fetchWorks();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const fetchWorks = async () => {
+        setLoading(true);
+        try {
+          const { data, error: worksError } = await supabase
+            .from('works')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (worksError) throw worksError;
+          if (!isActive) return;
+          setError('');
+          setWorks((data || []) as Work[]);
+        } catch (err: any) {
+          if (!isActive) return;
+          setError(err?.message || 'Erro ao carregar trabalhos.');
+          setWorks([]);
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      };
+      fetchWorks();
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
 
-  useEffect(() => {
-    const fetchTopics = async () => {
-      const { data, error: fetchError } = await supabase
-        .from('suggested_topics')
-        .select('id,title,course,description')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (fetchError) {
-        // mantém erro separado dos trabalhos
-        console.warn('Erro ao carregar temas sugeridos:', fetchError.message);
-      } else {
-        setSuggestedTopics(data || []);
-      }
-    };
-    fetchTopics();
-  }, []);
-
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const fetchTopics = async () => {
+        try {
+          const { data, error: topicsError } = await supabase
+            .from('suggested_topics')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (topicsError) throw topicsError;
+          if (!isActive) return;
+          setSuggestedTopics((data || []) as SuggestedTopic[]);
+        } catch (err: any) {
+          if (!isActive) return;
+          console.warn('Erro ao carregar temas sugeridos:', err?.message);
+          setSuggestedTopics([]);
+        }
+      };
+      fetchTopics();
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
   const recentWorks = useMemo(() => works, [works]);
   const bestWorks = useMemo(() => works, [works]);
   const mostViewedWorks = useMemo(() => works, [works]);
@@ -140,7 +173,7 @@ const HomeScreen: React.FC = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.headerIcon}
-            onPress={() => navigation.navigate('AddWork')}
+            onPress={() => goToStack('AddWork')}
           >
             <Ionicons name="add-circle-outline" size={28} color="#111" />
           </TouchableOpacity>
@@ -168,7 +201,7 @@ const HomeScreen: React.FC = () => {
             style={styles.searchInput}
             placeholderTextColor="#999"
           />
-          <TouchableOpacity onPress={() => navigation.navigate('Search')}>
+          <TouchableOpacity onPress={() => goToTab('Search')}>
             <Ionicons name="search" size={24} color="#6b86f0" />
           </TouchableOpacity>
         </View>
@@ -243,7 +276,6 @@ const HomeScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      <BottomNav active="home" />
     </View>
   );
 };
@@ -304,7 +336,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   searchBar: {
     flexDirection: 'row',

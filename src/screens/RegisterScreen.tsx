@@ -16,11 +16,21 @@ import { globalStyles } from '../styles';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabaseClient';
+import { uploadToBucket } from '../lib/supabaseStorage';
 
 const normalizeEmail = (raw: string) => {
-  const trimmed = raw.trim();
+  const trimmed = raw.trim().toLowerCase();
   if (!trimmed) return '';
-  return trimmed.includes('@') ? trimmed : `${trimmed}@tesebook.com`;
+  if (!trimmed.includes('@')) return `${trimmed}@tesebook.com`;
+  const [local, domain] = trimmed.split('@');
+  if (!local) return '';
+  if (!domain) return `${local}@tesebook.com`;
+  return trimmed;
+};
+const isValidEmail = (raw: string) => {
+  const normalized = normalizeEmail(raw);
+  if (!normalized) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
 };
 
 const courseOptions = [
@@ -93,6 +103,8 @@ const institutionOptions = [
 
 const degreeOptions = ['Licenciatura', 'Mestrado', 'Pós-Graduação'];
 
+const EMAIL_NOT_CONFIRMED_REGEX = /email\s+not\s+confirmed/i;
+
 const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [name, setName] = useState('');
@@ -109,12 +121,15 @@ const RegisterScreen: React.FC = () => {
   const [photoError, setPhotoError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [authError, setAuthError] = useState('');
+  const [resendEmail, setResendEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const validate = () => {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = 'Digite seu nome completo.';
     if (!email.trim()) next.email = 'Digite seu email.';
+    else if (!isValidEmail(email)) next.email = 'Email invalido.';
     if (!password) next.password = 'Digite uma senha.';
     else if (password.length < 6) next.password = 'Senha precisa ter pelo menos 6 caracteres.';
     if (!confirm) next.confirm = 'Confirme sua senha.';
@@ -144,56 +159,115 @@ const RegisterScreen: React.FC = () => {
     }
   };
 
-  const uploadProfilePhoto = async (uri: string, userId: string) => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const ext = uri.split('.').pop() || 'jpg';
-    const path = `profiles/${userId}.${ext}`;
-    const { error } = await supabase.storage.from('profile-photos').upload(path, blob, {
-      contentType: blob.type || 'image/jpeg',
-      upsert: true,
-    });
-    if (error) throw error;
-    const { data } = supabase.storage.from('profile-photos').getPublicUrl(path);
-    return data.publicUrl;
-  };
-
   const handleRegister = async () => {
     if (!validate()) return;
     setAuthError('');
+    setResendEmail('');
     setLoading(true);
-    const normalizedEmail = normalizeEmail(email);
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-    });
-    if (error) {
-      setAuthError(error.message || 'Erro ao criar conta.');
-      setLoading(false);
-      return;
-    }
-    const userId = data.user?.id;
-    if (userId) {
+    try {
+      if (!isValidEmail(email) || !password) {
+        setAuthError('Informe email e senha.');
+        setLoading(false);
+        return;
+      }
+      const normalizedEmail = normalizeEmail(email);
+      const { data, error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+      });
+      if (error) throw error;
+      if (!data.user) {
+        setAuthError('Nao foi possivel criar a conta.');
+        setLoading(false);
+        return;
+      }
+
+      if (!data.session) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+        if (signInError) {
+          if (EMAIL_NOT_CONFIRMED_REGEX.test(signInError?.message || '')) {
+            setAuthError('Email nao confirmado. Verifique sua caixa de entrada.');
+            setResendEmail(normalizedEmail);
+          } else {
+            setAuthError(signInError?.message || 'Erro ao autenticar.');
+          }
+          setLoading(false);
+          return;
+        }
+        if (!signInData.user) {
+          setAuthError('Nao foi possivel autenticar.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        setAuthError('Usuario nao autenticado. Tente novamente.');
+        setLoading(false);
+        return;
+      }
+
       let photoUrl: string | null = null;
       if (userPhoto) {
         try {
-          photoUrl = await uploadProfilePhoto(userPhoto, userId);
+          const ext = userPhoto.split('.').pop() || 'jpg';
+          const path = `${data.user.id}.${ext}`;
+          photoUrl = await uploadToBucket(userPhoto, 'profile-photos', path, 'image/jpeg');
         } catch (err: any) {
           setPhotoError(err?.message || 'Erro ao enviar foto.');
         }
       }
 
-      await supabase.from('profiles').upsert({
-        id: userId,
+      const profile = {
+        id: user.id,
         name,
         course,
         institution,
         academic_degree: degree,
         photo_url: photoUrl,
-      });
+      };
+
+      const { error: profileError } = await supabase.from('profiles').insert(profile);
+      if (profileError) throw profileError;
+
+      await supabase.auth.signOut();
+      setAuthError('Conta criada. Faça login para entrar.');
+      setResendEmail(normalizedEmail);
+      navigation.navigate('Login');
+    } catch (err: any) {
+      if (EMAIL_NOT_CONFIRMED_REGEX.test(err?.message || '')) {
+        setAuthError('Email nao confirmado. Verifique sua caixa de entrada.');
+        setResendEmail(normalizeEmail(email));
+      } else {
+        setAuthError(err?.message || 'Erro ao criar conta.');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    navigation.navigate('Login');
+  };
+
+  const handleResend = async () => {
+    if (!resendEmail) return;
+    setResendLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: resendEmail,
+      });
+      if (error) throw error;
+      setAuthError('Email de confirmacao reenviado.');
+    } catch (err: any) {
+      setAuthError(err?.message || 'Erro ao reenviar confirmacao.');
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
@@ -315,6 +389,18 @@ const RegisterScreen: React.FC = () => {
           {errors.degree ? <Text style={styles.errorText}>{errors.degree}</Text> : null}
 
           {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
+          {resendEmail ? (
+            <TouchableOpacity
+              style={[styles.resendButton, resendLoading && { opacity: 0.7 }]}
+              activeOpacity={0.85}
+              onPress={handleResend}
+              disabled={resendLoading}
+            >
+              <Text style={styles.resendButtonText}>
+                {resendLoading ? 'Reenviando...' : 'Reenviar confirmacao'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.primaryButton, loading && { opacity: 0.7 }]}
@@ -577,6 +663,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  resendButton: {
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  resendButtonText: {
+    color: '#1f3aa6',
+    fontWeight: '700',
   },
 });
 

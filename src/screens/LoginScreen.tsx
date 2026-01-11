@@ -14,10 +14,21 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 
 const normalizeEmail = (raw: string) => {
-  const trimmed = raw.trim();
+  const trimmed = raw.trim().toLowerCase();
   if (!trimmed) return '';
-  return trimmed.includes('@') ? trimmed : `${trimmed}@tesebook.com`;
+  if (!trimmed.includes('@')) return `${trimmed}@tesebook.com`;
+  const [local, domain] = trimmed.split('@');
+  if (!local) return '';
+  if (!domain) return `${local}@tesebook.com`;
+  return trimmed;
 };
+const isValidEmail = (raw: string) => {
+  const normalized = normalizeEmail(raw);
+  if (!normalized) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
+};
+
+const EMAIL_NOT_CONFIRMED_REGEX = /email\s+not\s+confirmed/i;
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -25,13 +36,18 @@ const LoginScreen: React.FC = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [authError, setAuthError] = useState('');
+  const [resendEmail, setResendEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const navigation = useNavigation<any>();
 
   const handleLogin = async () => {
     let valid = true;
     if (!email.trim()) {
       setEmailError('Insira o email.');
+      valid = false;
+    } else if (!isValidEmail(email)) {
+      setEmailError('Email invalido.');
       valid = false;
     } else {
       setEmailError('');
@@ -45,15 +61,64 @@ const LoginScreen: React.FC = () => {
     if (!valid) return;
 
     setAuthError('');
+    setResendEmail('');
     setLoading(true);
-    const normalizedEmail = normalizeEmail(email);
-    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-    setLoading(false);
-    if (error) {
-      setAuthError(error.message || 'Erro ao entrar.');
-      return;
+    try {
+      const normalizedEmail = normalizeEmail(email);
+      if (!isValidEmail(email) || !password) {
+        setAuthError('Informe email e senha.');
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+      if (error) throw error;
+      if (!data.user) {
+        setAuthError('Usuario nao encontrado.');
+        setLoading(false);
+        return;
+      }
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+      if (profileError || !profile) {
+        await supabase.auth.signOut();
+        setAuthError('Conta sem perfil. Finalize o cadastro primeiro.');
+        setLoading(false);
+        return;
+      }
+      navigation.navigate('MainTabs', { screen: 'Home' });
+    } catch (err: any) {
+      if (EMAIL_NOT_CONFIRMED_REGEX.test(err?.message || '')) {
+        setAuthError('Email nao confirmado. Verifique sua caixa de entrada.');
+        setResendEmail(normalizeEmail(email));
+      } else {
+        setAuthError(err?.message || 'Erro ao entrar.');
+      }
+    } finally {
+      setLoading(false);
     }
-    navigation.navigate('Home');
+  };
+
+  const handleResend = async () => {
+    if (!resendEmail) return;
+    setResendLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: resendEmail,
+      });
+      if (error) throw error;
+      setAuthError('Email de confirmacao reenviado.');
+    } catch (err: any) {
+      setAuthError(err?.message || 'Erro ao reenviar confirmacao.');
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
@@ -95,6 +160,18 @@ const LoginScreen: React.FC = () => {
           {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
           {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
+          {resendEmail ? (
+            <TouchableOpacity
+              style={[styles.resendButton, resendLoading && { opacity: 0.7 }]}
+              activeOpacity={0.85}
+              onPress={handleResend}
+              disabled={resendLoading}
+            >
+              <Text style={styles.resendButtonText}>
+                {resendLoading ? 'Reenviando...' : 'Reenviar confirmacao'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.primaryButton, loading && { opacity: 0.7 }]}
@@ -224,6 +301,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   outlineButtonText: {
+    color: '#1f3aa6',
+    fontWeight: '700',
+  },
+  resendButton: {
+    marginTop: 6,
+    alignItems: 'center',
+  },
+  resendButtonText: {
     color: '#1f3aa6',
     fontWeight: '700',
   },

@@ -36,43 +36,35 @@ const ReadWorkScreen: React.FC = () => {
     const fetchWork = async () => {
       if (!params.workId) return;
       setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('works')
-        .select('*')
-        .eq('id', params.workId)
-        .single();
-      setLoading(false);
-      if (fetchError) {
-        setError(fetchError.message || 'Erro ao carregar trabalho.');
-      } else {
+      try {
+        const { data, error: workError } = await supabase
+          .from('works')
+          .select('*')
+          .eq('id', params.workId)
+          .single();
+        if (workError) throw workError;
         setWork(data);
         setError('');
+      } catch (err: any) {
+        setError(err?.message || 'Erro ao carregar trabalho.');
+      } finally {
+        setLoading(false);
       }
     };
     fetchWork();
   }, [params.workId]);
 
   const handleDownload = async () => {
-    if (!canDownload) return;
-    const pdfUrl = work?.pdf_url;
+    if (!canDownload || !work) return;
+    const pdfUrl = work.pdf_url;
     if (!pdfUrl) {
-      setError('Nenhum PDF disponível.');
+      setError('Nenhum PDF disponivel.');
       return;
     }
     setError('');
     setDownloading(true);
     try {
-      let finalUrl = pdfUrl;
-      const idx = pdfUrl.indexOf('work-pdfs/');
-      if (idx !== -1) {
-        const path = pdfUrl.slice(idx + 'work-pdfs/'.length);
-        const { data, error: signError } = await supabase.storage
-          .from('work-pdfs')
-          .createSignedUrl(path, 60 * 30);
-        if (signError) throw signError;
-        if (data?.signedUrl) finalUrl = data.signedUrl;
-      }
-      await Linking.openURL(finalUrl);
+      await Linking.openURL(pdfUrl);
     } catch (err: any) {
       setError(err?.message || 'Erro ao baixar o PDF.');
     } finally {
@@ -92,13 +84,13 @@ const ReadWorkScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
         >
-          <Ionicons name="arrow-back" size={26} color="#111" />
+          <Ionicons name='arrow-back' size={26} color='#111' />
         </TouchableOpacity>
         <View style={styles.logoContainer}>
           <Image
             source={require('../../assets/tesebook.png')}
             style={styles.logo}
-            resizeMode="contain"
+            resizeMode='contain'
           />
         </View>
         <View style={styles.headerActions}>
@@ -107,7 +99,7 @@ const ReadWorkScreen: React.FC = () => {
             onPress={() => navigation.navigate('Chat')}
             hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
           >
-            <Ionicons name="chatbubbles-outline" size={28} color="#6b86f0" />
+            <Ionicons name='chatbubbles-outline' size={28} color='#6b86f0' />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconButton}
@@ -125,7 +117,7 @@ const ReadWorkScreen: React.FC = () => {
 
       <View style={styles.pdfContainer}>
         {work?.cover_url ? (
-          <Image source={{ uri: work.cover_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+          <Image source={{ uri: work.cover_url }} style={{ width: '100%', height: '100%' }} resizeMode='cover' />
         ) : (
           <Text style={styles.pdfText}>{loading ? 'Carregando...' : work?.title || 'Arquivo PDF'}</Text>
         )}
@@ -152,43 +144,6 @@ const ReadWorkScreen: React.FC = () => {
 
       {error ? <Text style={[styles.pdfText, { color: '#d32f2f', padding: 12 }]}>{error}</Text> : null}
 
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Ionicons name="home-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Favorites')}
-        >
-          <Ionicons name="heart-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Search')}
-        >
-          <Ionicons name="search-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('ReadWork')}
-        >
-          <Ionicons name="document-text" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('ChatList')}
-        >
-          <View style={styles.messageBadge}>
-            <Ionicons name="chatbubbles-outline" size={24} color="#fff" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>9</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -243,7 +198,7 @@ const styles = StyleSheet.create({
   },
   downloadButton: {
     marginHorizontal: 16,
-    marginBottom: 100,
+    marginBottom: 24,
     borderRadius: 28,
     backgroundColor: '#6b86f0',
     paddingVertical: 18,
@@ -266,44 +221,6 @@ const styles = StyleSheet.create({
   },
   downloadButtonTextDisabled: {
     color: '#eaeaea',
-  },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    backgroundColor: '#6b86f0',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    zIndex: 1000,
-    elevation: 10,
-  },
-  navItem: {
-    padding: 8,
-  },
-  messageBadge: {
-    position: 'relative',
-  },
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: '#ff0000',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: 'bold',
   },
 });
 

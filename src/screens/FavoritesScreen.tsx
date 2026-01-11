@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import BottomNav from '../components/BottomNav';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 
 interface Work {
@@ -30,23 +29,61 @@ const FavoritesScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchWorks = async () => {
-      setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('works')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setLoading(false);
-      if (fetchError) {
-        setError(fetchError.message || 'Erro ao carregar trabalhos.');
-      } else {
-        setError('');
-        setWorks(data || []);
-      }
-    };
-    fetchWorks();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const fetchFavorites = async () => {
+        setLoading(true);
+        try {
+          const {
+            data: { user },
+            error: userError,
+          } = await supabase.auth.getUser();
+          if (userError || !user) {
+            if (!isActive) return;
+            setError('Faca login para ver seus favoritos.');
+            setWorks([]);
+            setLoading(false);
+            return;
+          }
+
+          const { data: favorites, error: favError } = await supabase
+            .from('favorites')
+            .select('work_id')
+            .eq('user_id', user.id);
+          if (favError) throw favError;
+          const workIds = (favorites || []).map((f) => f.work_id);
+          if (workIds.length === 0) {
+            if (!isActive) return;
+            setError('');
+            setWorks([]);
+            setLoading(false);
+            return;
+          }
+
+          const { data: worksData, error: worksError } = await supabase
+            .from('works')
+            .select('*')
+            .in('id', workIds);
+          if (worksError) throw worksError;
+          if (!isActive) return;
+          setError('');
+          setWorks((worksData || []) as Work[]);
+        } catch (err: any) {
+          if (!isActive) return;
+          setError(err?.message || 'Erro ao carregar favoritos.');
+          setWorks([]);
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      };
+
+      fetchFavorites();
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
 
   const handleOpenWork = (id: string, allow_download?: boolean) => {
     navigation.navigate('ReadWork', { workId: id, allowDownload: allow_download });
@@ -111,7 +148,6 @@ const FavoritesScreen: React.FC = () => {
         />
       </ScrollView>
 
-      <BottomNav active="favorites" />
     </View>
   );
 };
@@ -150,7 +186,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   listContent: {
     paddingHorizontal: 16,

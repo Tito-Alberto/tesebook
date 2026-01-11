@@ -21,25 +21,29 @@ const ProfileScreen: React.FC = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData?.user) {
-        setError('Faça login para ver o perfil.');
-        setLoading(false);
-        return;
-      }
-
-      const { data, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userData.user.id)
-        .single();
-
-      setLoading(false);
-      if (profileError) {
-        setError(profileError.message || 'Erro ao carregar perfil.');
-      } else {
-        setError('');
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        if (userError || !user) {
+          setError('Faca login para ver o perfil.');
+          setLoading(false);
+          return;
+        }
+        const { data, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        if (profileError) throw profileError;
         setProfile(data);
+        setError('');
+      } catch (err: any) {
+        setError(err?.message || 'Erro ao carregar perfil.');
+        setProfile(null);
+      } finally {
+        setLoading(false);
       }
     };
     fetchProfile();
@@ -47,21 +51,7 @@ const ProfileScreen: React.FC = () => {
 
   useEffect(() => {
     const resolveAvatar = async () => {
-      if (profile?.photo_url) {
-        const storedUrl: string = profile.photo_url;
-        const idx = storedUrl.indexOf('profile-photos/');
-        if (idx !== -1) {
-          const path = storedUrl.slice(idx + 'profile-photos/'.length);
-          const { data, error: signError } = await supabase.storage
-            .from('profile-photos')
-            .createSignedUrl(path, 60 * 30);
-          if (!signError && data?.signedUrl) {
-            setAvatarUrl(data.signedUrl);
-            return;
-          }
-        }
-        setAvatarUrl(storedUrl);
-      }
+      if (profile?.photo_url) setAvatarUrl(profile.photo_url);
     };
     resolveAvatar();
   }, [profile]);
@@ -91,7 +81,7 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         <Text style={styles.username}>
-          {loading ? 'Carregando...' : profile?.name || 'Usuário'}
+          {loading ? 'Carregando...' : profile?.name || 'Usuario'}
         </Text>
 
         {error ? <Text style={[styles.detailValue, { color: '#d32f2f', textAlign: 'center' }]}>{error}</Text> : null}
@@ -100,7 +90,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.detailLabel}>Curso</Text>
           <Text style={styles.detailValue}>{profile?.course || '-'}</Text>
 
-          <Text style={styles.detailLabel}>Nome da instituição</Text>
+          <Text style={styles.detailLabel}>Nome da instituicao</Text>
           <Text style={styles.detailValue}>{profile?.institution || '-'}</Text>
 
           <Text style={styles.detailLabel}>Grau academico</Text>

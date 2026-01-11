@@ -8,10 +8,11 @@ import {
   TextInput,
   Image,
   Modal,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { globalStyles } from '../styles';
+import { supabase } from '../lib/supabaseClient';
 
 const AddTopicScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -19,59 +20,96 @@ const AddTopicScreen: React.FC = () => {
   const [course, setCourse] = useState('');
   const [description, setDescription] = useState('');
   const [courseModalVisible, setCourseModalVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const courseOptions = [
     'DIREITO',
-    'CIÊNCIA POLÍTICA',
-    'RELAÇÕES INTERNACIONAIS',
+    'CIENCIA POLITICA',
+    'RELACOES INTERNACIONAIS',
     'SOCIOLOGIA',
     'PSICOLOGIA',
     'FILOSOFIA',
-    'HISTÓRIA',
-    'CIÊNCIAS DA EDUCAÇÃO',
+    'HISTORIA',
+    'CIENCIAS DA EDUCACAO',
     'PEDAGOGIA',
-    'EDUCAÇÃO DE INFÂNCIA',
+    'EDUCACAO DE INFANCIA',
     'ECONOMIA',
-    'GESTÃO DE EMPRESAS',
-    'ADMINISTRAÇÃO PÚBLICA',
+    'GESTAO DE EMPRESAS',
+    'ADMINISTRACAO PUBLICA',
     'CONTABILIDADE',
-    'FINANÇAS',
+    'FINANCAS',
     'AUDITORIA',
     'MARKETING',
     'RECURSOS HUMANOS',
-    'COMÉRCIO INTERNACIONAL',
-    'GESTÃO DE RECURSOS HUMANOS',
-    'GESTÃO HOSPITALAR',
-    'MATEMÁTICA',
-    'FÍSICA',
-    'QUÍMICA',
-    'ESTATÍSTICA',
-    'INFORMÁTICA',
-    'ENGENHARIA INFORMÁTICA',
-    'CIÊNCIA DA COMPUTAÇÃO',
-    'SISTEMAS DE INFORMAÇÃO',
-    'TECNOLOGIAS DE INFORMAÇÃO',
-    'TELECOMUNICAÇÕES',
+    'COMERCIO INTERNACIONAL',
+    'GESTAO DE RECURSOS HUMANOS',
+    'GESTAO HOSPITALAR',
+    'MATEMATICA',
+    'FISICA',
+    'QUIMICA',
+    'ESTATISTICA',
+    'INFORMATICA',
+    'ENGENHARIA INFORMATICA',
+    'CIENCIA DA COMPUTACAO',
+    'SISTEMAS DE INFORMACAO',
+    'TECNOLOGIAS DE INFORMACAO',
+    'TELECOMUNICACOES',
     'ENGENHARIA CIVIL',
-    'ENGENHARIA MECÂNICA',
-    'ENGENHARIA ELÉTRICA',
-    'ENGENHARIA ELETROTÉCNICA',
+    'ENGENHARIA MECANICA',
+    'ENGENHARIA ELETRICA',
+    'ENGENHARIA ELETROTECNICA',
     'ENGENHARIA DE MINAS',
-    'ENGENHARIA GEOLÓGICA',
-    'ENGENHARIA QUÍMICA',
-    'ENGENHARIA PETROLÍFERA',
+    'ENGENHARIA GEOLOGICA',
+    'ENGENHARIA QUIMICA',
+    'ENGENHARIA PETROLIFERA',
     'ENGENHARIA AMBIENTAL',
-    'ENGENHARIA DE PRODUÇÃO',
+    'ENGENHARIA DE PRODUCAO',
   ];
 
-  const handleAdd = () => {
-    // Aqui pode adicionar a lógica para salvar o tema
-    // Por enquanto, apenas volta para a tela anterior
-    if (topic.trim() && course.trim() && description.trim()) {
-      navigation.goBack();
+
+  const handleAdd = async () => {
+    const trimmedTopic = topic.trim();
+    const trimmedCourse = course.trim();
+    const trimmedDescription = description.trim();
+
+    if (!trimmedTopic || !trimmedCourse || !trimmedDescription) {
+      setFormError('Preencha todos os campos para sugerir um tema.');
+      return;
+    }
+
+    setFormError('');
+    setSaving(true);
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        setFormError('Faca login para sugerir um tema.');
+        setSaving(false);
+        return;
+      }
+
+      const { error } = await supabase.from('suggested_topics').insert({
+        title: trimmedTopic,
+        course: trimmedCourse,
+        description: trimmedDescription,
+        user_id: user.id,
+      });
+      if (error) throw error;
+
+      setTopic('');
+      setCourse('');
+      setDescription('');
+      Alert.alert('Tema enviado', 'Sua sugestao ja aparece em Temas sugeridos.');
+      navigation.navigate('MainTabs', { screen: 'Home' });
+    } catch (err: any) {
+      setFormError(err?.message || 'Nao foi possivel salvar sua sugestao.');
+    } finally {
+      setSaving(false);
     }
   };
-
   const handleCancel = () => {
     navigation.goBack();
   };
@@ -129,12 +167,12 @@ const AddTopicScreen: React.FC = () => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Discrição</Text>
+            <Text style={styles.label}>Descricao</Text>
             <TextInput
               style={styles.descriptionInput}
               value={description}
               onChangeText={setDescription}
-              placeholder="Digite a descrição"
+              placeholder="Digite a descricao"
               placeholderTextColor="#999"
               multiline
               numberOfLines={8}
@@ -146,11 +184,12 @@ const AddTopicScreen: React.FC = () => {
         {/* Action Buttons */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
-            style={styles.addButton}
+            style={[styles.addButton, saving && styles.buttonDisabled]}
             onPress={handleAdd}
+            disabled={saving}
             activeOpacity={0.85}
           >
-            <Text style={styles.buttonText}>Adicionar</Text>
+            <Text style={styles.buttonText}>{saving ? 'Enviando...' : 'Adicionar'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -161,6 +200,8 @@ const AddTopicScreen: React.FC = () => {
             <Text style={styles.buttonText}>Cancelar</Text>
           </TouchableOpacity>
         </View>
+
+        {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
       </ScrollView>
 
       <Modal
@@ -307,6 +348,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  buttonDisabled: {
+    opacity: 0.8,
+  },
   buttonText: {
     color: '#fff',
     fontSize: 18,
@@ -351,6 +395,11 @@ const styles = StyleSheet.create({
     color: '#6b86f0',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  errorText: {
+    marginTop: 12,
+    color: '#d32f2f',
+    textAlign: 'center',
   },
 });
 

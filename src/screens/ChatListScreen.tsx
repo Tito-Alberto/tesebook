@@ -108,41 +108,6 @@ const ChatListScreen: React.FC = () => {
         />
       </ScrollView>
 
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Ionicons name="home-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Favorites')}
-        >
-          <Ionicons name="heart-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Search')}
-        >
-          <Ionicons name="search-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.navItem}
-          onPress={() => navigation.navigate('ReadWork')}
-        >
-          <Ionicons name="document-text-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <View style={styles.messageBadge}>
-            <Ionicons name="chatbubbles" size={24} color="#fff" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>9</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -171,7 +136,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   listContent: {
     paddingTop: 20,
@@ -228,45 +193,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: 'bold',
-  },
-  badge: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: '#ff0000',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    backgroundColor: '#6b86f0',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderTopWidth: 0,
-    zIndex: 1000,
-    elevation: 10,
-  },
-  navItem: {
-    padding: 8,
-  },
-  messageBadge: {
-    position: 'relative',
   },
 });
 

@@ -1,21 +1,17 @@
--- Supabase schema for Tesebook
-
--- Profiles linked to Supabase Auth
-create table if not exists profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
+-- Core tables
+create table if not exists public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
   name text,
-  photo_url text,
   course text,
   institution text,
   academic_degree text,
+  photo_url text,
   created_at timestamptz default now()
 );
-create index if not exists idx_profiles_institution on profiles(institution);
 
--- Works
-create table if not exists works (
+create table if not exists public.works (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid references auth.users (id) on delete cascade,
   title text,
   topic text,
   course text,
@@ -23,115 +19,124 @@ create table if not exists works (
   academic_degree text,
   cover_url text,
   pdf_url text,
-  allow_download boolean not null default true,
-  created_at timestamptz not null default now()
+  allow_download boolean default true,
+  created_at timestamptz default now()
 );
-create index if not exists idx_works_user on works(user_id);
 
--- Suggested topics
-create table if not exists suggested_topics (
+create table if not exists public.suggested_topics (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  title text not null,
+  user_id uuid references auth.users (id) on delete cascade,
+  title text,
   course text,
   description text,
-  created_at timestamptz not null default now()
+  created_at timestamptz default now()
 );
+
+create table if not exists public.favorites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users (id) on delete cascade,
+  work_id uuid references public.works (id) on delete cascade,
+  created_at timestamptz default now(),
+  unique (user_id, work_id)
+);
+
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  sender_id uuid references auth.users (id) on delete cascade,
+  receiver_id uuid references auth.users (id) on delete cascade,
+  body text,
+  created_at timestamptz default now()
+);
+
+-- RLS
+alter table public.profiles enable row level security;
+alter table public.works enable row level security;
+alter table public.suggested_topics enable row level security;
+alter table public.favorites enable row level security;
+alter table public.messages enable row level security;
+
+-- Profiles
+create policy "profiles_read_public"
+on public.profiles for select
+using (true);
+
+create policy "profiles_insert_own"
+on public.profiles for insert
+with check (auth.uid() = id);
+
+create policy "profiles_update_own"
+on public.profiles for update
+using (auth.uid() = id);
+
+-- Works
+create policy "works_read_public"
+on public.works for select
+using (true);
+
+create policy "works_insert_own"
+on public.works for insert
+with check (auth.uid() = user_id);
+
+create policy "works_update_own"
+on public.works for update
+using (auth.uid() = user_id);
+
+create policy "works_delete_own"
+on public.works for delete
+using (auth.uid() = user_id);
+
+-- Suggested topics
+create policy "topics_read_public"
+on public.suggested_topics for select
+using (true);
+
+create policy "topics_insert_own"
+on public.suggested_topics for insert
+with check (auth.uid() = user_id);
 
 -- Favorites
-create table if not exists favorites (
-  user_id uuid not null references auth.users(id) on delete cascade,
-  work_id uuid not null references works(id) on delete cascade,
-  created_at timestamptz not null default now(),
-  primary key (user_id, work_id)
-);
-create index if not exists idx_fav_work on favorites(work_id);
+create policy "favorites_read_own"
+on public.favorites for select
+using (auth.uid() = user_id);
 
--- Views
-create table if not exists views (
-  id bigserial primary key,
-  user_id uuid references auth.users(id) on delete set null,
-  work_id uuid not null references works(id) on delete cascade,
-  created_at timestamptz not null default now()
-);
-create index if not exists idx_views_work on views(work_id);
+create policy "favorites_insert_own"
+on public.favorites for insert
+with check (auth.uid() = user_id);
 
--- Likes
-create table if not exists likes (
-  user_id uuid not null references auth.users(id) on delete cascade,
-  work_id uuid not null references works(id) on delete cascade,
-  created_at timestamptz not null default now(),
-  primary key (user_id, work_id)
-);
-create index if not exists idx_likes_work on likes(work_id);
-
--- Chats
-create table if not exists chats (
-  id uuid primary key default gen_random_uuid(),
-  user_a_id uuid not null references auth.users(id) on delete cascade,
-  user_b_id uuid not null references auth.users(id) on delete cascade,
-  last_message_at timestamptz,
-  created_at timestamptz not null default now(),
-  unique (user_a_id, user_b_id)
-);
+create policy "favorites_delete_own"
+on public.favorites for delete
+using (auth.uid() = user_id);
 
 -- Messages
-create table if not exists messages (
-  id uuid primary key default gen_random_uuid(),
-  chat_id uuid not null references chats(id) on delete cascade,
-  sender_id uuid not null references auth.users(id) on delete cascade,
-  body text not null,
-  sent_at timestamptz not null default now(),
-  read_at timestamptz
-);
-create index if not exists idx_messages_chat on messages(chat_id);
+create policy "messages_read_participant"
+on public.messages for select
+using (auth.uid() = sender_id or auth.uid() = receiver_id);
 
--- RLS policies
-alter table profiles enable row level security;
-create policy if not exists "owner can read profile" on profiles for select using (auth.uid() = id);
-create policy if not exists "owner can upsert profile" on profiles for insert with check (auth.uid() = id);
-create policy if not exists "owner can update profile" on profiles for update using (auth.uid() = id) with check (auth.uid() = id);
+create policy "messages_insert_sender"
+on public.messages for insert
+with check (auth.uid() = sender_id);
 
-alter table works enable row level security;
-create policy if not exists "anyone can read works" on works for select using (true);
-create policy if not exists "owner can write works" on works
-  for all using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+-- Storage buckets (run in SQL editor)
+insert into storage.buckets (id, name, public)
+values
+  ('profile-photos', 'profile-photos', true),
+  ('work-covers', 'work-covers', true),
+  ('work-pdfs', 'work-pdfs', true)
+on conflict (id) do nothing;
 
-alter table suggested_topics enable row level security;
-create policy if not exists "anyone reads topics" on suggested_topics for select using (true);
-create policy if not exists "owner writes topics" on suggested_topics
-  for all using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+-- Storage policies
+create policy "storage_read_public"
+on storage.objects for select
+using (bucket_id in ('profile-photos', 'work-covers', 'work-pdfs'));
 
-alter table favorites enable row level security;
-create policy if not exists "owner writes favorites" on favorites
-  for all using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+create policy "storage_insert_auth"
+on storage.objects for insert
+with check (bucket_id in ('profile-photos', 'work-covers', 'work-pdfs') and auth.role() = 'authenticated');
 
-alter table views enable row level security;
-create policy if not exists "anyone logs views" on views for insert with check (true);
-create policy if not exists "anyone reads views" on views for select using (true);
+create policy "storage_update_auth"
+on storage.objects for update
+using (bucket_id in ('profile-photos', 'work-covers', 'work-pdfs') and auth.role() = 'authenticated');
 
-alter table likes enable row level security;
-create policy if not exists "owner writes likes" on likes
-  for all using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
-alter table chats enable row level security;
-create policy if not exists "participants read chats" on chats for select using (
-  auth.uid() in (user_a_id, user_b_id)
-);
-create policy if not exists "participants write chats" on chats
-  for all using (auth.uid() in (user_a_id, user_b_id))
-  with check (auth.uid() in (user_a_id, user_b_id));
-
-alter table messages enable row level security;
-create policy if not exists "participants read messages" on messages for select using (
-  exists (select 1 from chats c where c.id = chat_id and auth.uid() in (c.user_a_id, c.user_b_id))
-);
-create policy if not exists "sender writes messages" on messages
-  for all using (
-    exists (select 1 from chats c where c.id = chat_id and auth.uid() in (c.user_a_id, c.user_b_id))
-  )
-  with check (auth.uid() = sender_id);
+create policy "storage_delete_auth"
+on storage.objects for delete
+using (bucket_id in ('profile-photos', 'work-covers', 'work-pdfs') and auth.role() = 'authenticated');

@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import BottomNav from '../components/BottomNav';
 import { supabase } from '../lib/supabaseClient';
 
 interface Work {
@@ -53,16 +52,19 @@ const SearchScreen: React.FC = () => {
   useEffect(() => {
     const fetchWorks = async () => {
       setLoading(true);
-      const { data, error: fetchError } = await supabase
-        .from('works')
-        .select('*')
-        .order('created_at', { ascending: false });
-      setLoading(false);
-      if (fetchError) {
-        setError(fetchError.message || 'Erro ao carregar trabalhos.');
-      } else {
+      try {
+        const { data, error: worksError } = await supabase
+          .from('works')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (worksError) throw worksError;
         setError('');
-        setWorks(data || []);
+        setWorks((data || []) as Work[]);
+      } catch (err: any) {
+        setError(err?.message || 'Erro ao carregar trabalhos.');
+        setWorks([]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchWorks();
@@ -223,8 +225,6 @@ const SearchScreen: React.FC = () => {
         />
       </ScrollView>
 
-      <BottomNav active="search" />
-
       <Modal
         visible={courseModalVisible}
         animationType="slide"
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 20,
   },
   listContent: {
     paddingHorizontal: 16,
