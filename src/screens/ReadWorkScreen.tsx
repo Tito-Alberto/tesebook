@@ -27,6 +27,7 @@ const ReadWorkScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const params = (route?.params as RouteParams) || {};
+  // Estado da leitura e interacoes
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [isStarred, setIsStarred] = useState(false);
@@ -45,6 +46,7 @@ const ReadWorkScreen: React.FC = () => {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Monta URL do leitor interno
   const getViewerUrl = useCallback((pdfUrl: string) => {
     if (Platform.OS === 'android') {
       return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(pdfUrl)}`;
@@ -52,12 +54,14 @@ const ReadWorkScreen: React.FC = () => {
     return pdfUrl;
   }, []);
 
+  // Regras para liberar download
   const canDownload = useMemo(() => {
     if (params.allowDownload === false) return false;
     if (work && work.allow_download === false) return false;
     return true;
   }, [params.allowDownload, work]);
 
+  // Atualiza estado de favorito
   const refreshFavoriteStatus = useCallback(async (options?: { activeRef?: { current: boolean } }) => {
     if (!params.workId) return;
     const activeRef = options?.activeRef;
@@ -84,6 +88,7 @@ const ReadWorkScreen: React.FC = () => {
     }
   }, [params.workId]);
 
+  // Atualiza estado de estrela
   const refreshStarStatus = useCallback(async (options?: { activeRef?: { current: boolean } }) => {
     if (!params.workId) return;
     const activeRef = options?.activeRef;
@@ -110,6 +115,7 @@ const ReadWorkScreen: React.FC = () => {
     }
   }, [params.workId]);
 
+  // Conta visualizacoes do trabalho
   const incrementViewCount = useCallback(async (workId: string) => {
     try {
       const { error: viewError } = await supabase.rpc('increment_work_view', { work_id: workId });
@@ -119,6 +125,7 @@ const ReadWorkScreen: React.FC = () => {
     }
   }, []);
 
+  // Carrega dados do trabalho e estados iniciais
   useEffect(() => {
     const activeRef = { current: true };
     const fetchWork = async () => {
@@ -182,6 +189,7 @@ const ReadWorkScreen: React.FC = () => {
     };
   }, []);
 
+  // Toast simples para feedback
   const showToast = (message: string) => {
     if (toastTimer.current) {
       clearTimeout(toastTimer.current);
@@ -214,8 +222,7 @@ const ReadWorkScreen: React.FC = () => {
     }
   };
 
-
-
+  // Inicia leitura interna do PDF
   const handleStartReading = () => {
     if (!work?.pdf_url) {
       showToast('PDF indisponivel.');
@@ -252,6 +259,7 @@ const ReadWorkScreen: React.FC = () => {
     }
   };
 
+  // Faz download do PDF
   const handleDownload = async () => {
     if (!canDownload || !work) return;
     const pdfUrl = work.pdf_url;
@@ -315,6 +323,7 @@ const ReadWorkScreen: React.FC = () => {
     }
   };
 
+  // Alterna favorito do trabalho
   const toggleFavorite = async () => {
     if (!params.workId || favoriteLoading) return;
     setFavoriteLoading(true);
@@ -354,6 +363,7 @@ const ReadWorkScreen: React.FC = () => {
     }
   };
 
+  // Alterna estrela do trabalho
   const toggleStar = async () => {
     if (!params.workId || starLoading) return;
     setStarLoading(true);
@@ -393,6 +403,7 @@ const ReadWorkScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Cabecalho e acoes */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -469,6 +480,7 @@ const ReadWorkScreen: React.FC = () => {
         </View>
       </View>
 
+      {/* Area de leitura */}
       <View style={[styles.pdfContainer, isReading && styles.pdfContainerReading]}>
         {isReading ? (
           <>
@@ -529,8 +541,10 @@ const ReadWorkScreen: React.FC = () => {
         )}
       </View>
 
+      {/* Erros gerais */}
       {error ? <Text style={[styles.pdfText, { color: '#d32f2f', padding: 12 }]}>{error}</Text> : null}
 
+      {/* Toast de feedback */}
       {toastVisible ? (
         <Animated.View
           style={[

@@ -14,12 +14,14 @@ import { resolveStorageUrl } from '../lib/supabaseStorage';
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  // Estado do perfil
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [profile, setProfile] = useState<any>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    // Busca dados do usuario logado
     const fetchProfile = async () => {
       setLoading(true);
       try {
@@ -51,6 +53,7 @@ const ProfileScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Resolve URL da foto no storage
     let active = true;
     const resolveAvatar = async () => {
       if (!profile?.photo_url) {
@@ -68,6 +71,7 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Voltar */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -80,6 +84,7 @@ const ProfileScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Foto e nome */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
             {avatarUrl ? (
@@ -99,6 +104,7 @@ const ProfileScreen: React.FC = () => {
 
         {error ? <Text style={[styles.detailValue, { color: '#d32f2f', textAlign: 'center' }]}>{error}</Text> : null}
 
+        {/* Detalhes do perfil */}
         <View style={styles.detailsContainer}>
           <Text style={styles.detailLabel}>Curso</Text>
           <Text style={styles.detailValue}>{profile?.course || '-'}</Text>
@@ -110,6 +116,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.detailValue}>{profile?.academic_degree || '-'}</Text>
         </View>
 
+        {/* Acoes do perfil */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={styles.primaryButton}

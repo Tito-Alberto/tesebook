@@ -47,12 +47,14 @@ interface SuggestedTopic {
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  // Estado principal da tela
   const [works, setWorks] = useState<Work[]>([]);
   const [suggestedTopics, setSuggestedTopics] = useState<SuggestedTopic[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<SuggestedTopic | null>(null);
   const [topicModalVisible, setTopicModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Helpers para navegar entre tabs e stack
   const goToTab = (screen: string) => {
     const parent = navigation.getParent();
     if (parent) {
@@ -70,6 +72,8 @@ const HomeScreen: React.FC = () => {
     }
   };
 
+  // Carrega trabalhos ao focar na tela
+  // Carrega temas sugeridos ao focar na tela
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -192,6 +196,7 @@ const HomeScreen: React.FC = () => {
       };
     }, []),
   );
+  // Listas derivadas para seccoes
   const recentWorks = useMemo(() => works, [works]);
   const bestWorks = useMemo(() => {
     const sorted = works
@@ -210,6 +215,7 @@ const HomeScreen: React.FC = () => {
     return sorted;
   }, [works]);
 
+  // Renderiza card de trabalho
   const renderWorkCard = ({ item }: { item: Work }) => (
     <TouchableOpacity
       style={styles.workCard}
@@ -237,6 +243,7 @@ const HomeScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  // Renderiza card de tema sugerido
   const renderSuggestedTopic = ({ item }: { item: SuggestedTopic }) => (
     <TouchableOpacity
       style={styles.suggestedTopicCard}
@@ -272,6 +279,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Cabecalho */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerIcon}
@@ -311,6 +319,7 @@ const HomeScreen: React.FC = () => {
       >
         {error ? <Text style={[styles.sectionTitle, { color: '#d32f2f', paddingHorizontal: 16 }]}>{error}</Text> : null}
 
+        {/* Pesquisa rapida */}
         <View style={styles.searchBar}>
           <TextInput
             placeholder="Pesquisar"
@@ -338,6 +347,7 @@ const HomeScreen: React.FC = () => {
           />
         </View>
 
+        {/* Trabalhos recentes */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             {loading ? 'Carregando trabalhos...' : 'Trabalhos Recentes'}
@@ -357,6 +367,7 @@ const HomeScreen: React.FC = () => {
           />
         </View>
 
+        {/* Melhores trabalhos */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Melhores Trabalhos</Text>
           <FlatList
@@ -374,6 +385,7 @@ const HomeScreen: React.FC = () => {
           />
         </View>
 
+        {/* Mais visualizados */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Trabalhos mais visualizados</Text>
           <FlatList
@@ -392,6 +404,7 @@ const HomeScreen: React.FC = () => {
         </View>
       </ScrollView>
 
+      {/* Modal de detalhes do tema */}
       <Modal
         visible={topicModalVisible}
         animationType="fade"

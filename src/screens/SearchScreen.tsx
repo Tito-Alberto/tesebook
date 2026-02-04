@@ -29,6 +29,7 @@ type TabKey = 'Curso' | 'Instituicao';
 
 const SearchScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  // Estado dos filtros e resultados
   const [activeTab, setActiveTab] = useState<TabKey>('Curso');
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,6 +41,7 @@ const SearchScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Opcoes fixas de curso e instituicao
   const courseOptions = useMemo(
     () => [
       'DIREITO',
@@ -115,6 +117,7 @@ const SearchScreen: React.FC = () => {
   );
 
   useEffect(() => {
+    // Carrega todos os trabalhos uma vez
     const fetchWorks = async () => {
       setLoading(true);
       try {
@@ -142,6 +145,7 @@ const SearchScreen: React.FC = () => {
     fetchWorks();
   }, []);
 
+  // Filtra por aba ativa, selecoes e texto livre
   const filteredWorks = works.filter((item) => {
     const query = searchQuery.trim().toLowerCase();
     const matchCourse =
@@ -189,6 +193,7 @@ const SearchScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Cabecalho */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image
@@ -199,6 +204,7 @@ const SearchScreen: React.FC = () => {
         </View>
       </View>
 
+      {/* Abas e filtros */}
       <View style={styles.tabsContainer}>
         <View style={styles.tabsRow}>
           <TouchableOpacity
@@ -246,6 +252,7 @@ const SearchScreen: React.FC = () => {
         </View>
 
         {searchVisible && (
+          {/* Barra de pesquisa */}
           <View style={styles.searchBar}>
             <Ionicons name="search" size={20} color="#6b86f0" style={{ marginRight: 8 }} />
             <TextInput
@@ -260,6 +267,7 @@ const SearchScreen: React.FC = () => {
         )}
 
         <View style={styles.filterRow}>
+          {/* Filtro por aba + limpar */}
           {activeTab === 'Curso' ? (
             <TouchableOpacity
               style={styles.filterButton}
@@ -302,6 +310,7 @@ const SearchScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Lista de resultados */}
         {error ? <Text style={[styles.tabText, { color: '#d32f2f', paddingHorizontal: 16 }]}>{error}</Text> : null}
         <FlatList
           data={filteredWorks}

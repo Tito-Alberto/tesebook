@@ -16,6 +16,7 @@ import { supabase } from '../lib/supabaseClient';
 
 const AddTopicScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  // Estado do formulario
   const [topic, setTopic] = useState('');
   const [course, setCourse] = useState('');
   const [description, setDescription] = useState('');
@@ -23,6 +24,7 @@ const AddTopicScreen: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Opcoes de curso
   const courseOptions = [
     'DIREITO',
     'CIENCIA POLITICA',
@@ -68,6 +70,7 @@ const AddTopicScreen: React.FC = () => {
   ];
 
 
+  // Envia sugestao de tema
   const handleAdd = async () => {
     const trimmedTopic = topic.trim();
     const trimmedCourse = course.trim();
@@ -111,13 +114,14 @@ const AddTopicScreen: React.FC = () => {
       setSaving(false);
     }
   };
+  // Cancela e volta
   const handleCancel = () => {
     navigation.goBack();
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Cabecalho */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -140,7 +144,7 @@ const AddTopicScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Form Fields */}
+        {/* Campos do formulario */}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Adicionar Tema</Text>
@@ -182,7 +186,7 @@ const AddTopicScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Action Buttons */}
+        {/* Acoes */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={[styles.addButton, saving && styles.buttonDisabled]}
@@ -205,6 +209,7 @@ const AddTopicScreen: React.FC = () => {
         {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
       </ScrollView>
 
+      {/* Modal de curso */}
       <Modal
         visible={courseModalVisible}
         animationType="slide"

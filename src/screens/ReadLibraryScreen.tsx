@@ -24,10 +24,12 @@ interface Work {
 
 const ReadLibraryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  // Estado da lista de trabalhos
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Busca trabalhos no Supabase
   const fetchWorks = useCallback(async (options?: { activeRef?: { current: boolean } }) => {
     const activeRef = options?.activeRef;
     const isActive = () => !activeRef || activeRef.current;
@@ -64,6 +66,7 @@ const ReadLibraryScreen: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
+      // Recarrega ao voltar para a tela
       const activeRef = { current: true };
       fetchWorks({ activeRef });
       return () => {
@@ -73,13 +76,16 @@ const ReadLibraryScreen: React.FC = () => {
   );
 
   useEffect(() => {
+    // Carrega na primeira vez
     fetchWorks();
   }, [fetchWorks]);
 
+  // Abre leitura do trabalho
   const handleOpenWork = (id: string, allowDownload?: boolean) => {
     navigation.navigate('ReadWork', { workId: id, allowDownload });
   };
 
+  // Renderiza card de trabalho
   const renderWorkItem = ({ item }: { item: Work }) => (
     <TouchableOpacity
       style={styles.workCard}
@@ -104,6 +110,7 @@ const ReadLibraryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Cabecalho */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Leituras</Text>
         <View style={styles.logoContainer}>
@@ -115,6 +122,7 @@ const ReadLibraryScreen: React.FC = () => {
         </View>
       </View>
 
+      {/* Lista principal */}
       {error ? <Text style={[styles.headerTitle, { color: '#d32f2f', fontSize: 14 }]}>{error}</Text> : null}
       <FlatList
         data={works}

@@ -14,6 +14,7 @@ import { globalStyles } from '../styles';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 
+// Helpers para normalizar e validar email
 const normalizeEmail = (raw: string) => {
   const trimmed = raw.trim().toLowerCase();
   if (!trimmed) return '';
@@ -32,6 +33,7 @@ const isValidEmail = (raw: string) => {
 const EMAIL_NOT_CONFIRMED_REGEX = /email\s+not\s+confirmed/i;
 
 const LoginScreen: React.FC = () => {
+  // Estado do formulario e feedbacks
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -42,6 +44,7 @@ const LoginScreen: React.FC = () => {
   const [resendLoading, setResendLoading] = useState(false);
   const navigation = useNavigation<any>();
 
+  // Login com validacao e checagem de perfil
   const handleLogin = async () => {
     let valid = true;
     if (!email.trim()) {
@@ -105,6 +108,7 @@ const LoginScreen: React.FC = () => {
     }
   };
 
+  // Reenvio de confirmacao de email
   const handleResend = async () => {
     if (!resendEmail) return;
     setResendLoading(true);
@@ -128,6 +132,7 @@ const LoginScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={{ flex: 1 }}>
+        {/* Loading bloqueante */}
         {loading ? (
           <View style={styles.loadingOverlay} pointerEvents="auto">
             <View style={styles.loadingCard}>
@@ -135,10 +140,12 @@ const LoginScreen: React.FC = () => {
             </View>
           </View>
         ) : null}
+        {/* Logo */}
         <View style={styles.top}>
           <Image source={require('../../assets/tesebook.png')} style={styles.logo} resizeMode="contain" />
         </View>
 
+        {/* Formulario de login */}
         <View style={styles.form}>
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputWrap}>
@@ -181,6 +188,7 @@ const LoginScreen: React.FC = () => {
             </TouchableOpacity>
           ) : null}
 
+          {/* Acao principal */}
           <TouchableOpacity
             style={[styles.primaryButton, loading && { opacity: 0.7 }]}
             activeOpacity={0.85}
@@ -190,11 +198,13 @@ const LoginScreen: React.FC = () => {
             <Text style={styles.primaryButtonText}>{loading ? 'Entrando...' : 'Entrar'}</Text>
           </TouchableOpacity>
 
+          {/* Link de recuperacao */}
           <TouchableOpacity style={styles.forgot}>
             <Text style={styles.forgotText}>Esqueceu sua senha ?</Text>
           </TouchableOpacity>
         </View>
 
+        {/* Acesso ao cadastro */}
         <View style={styles.bottom} pointerEvents="box-none">
           <TouchableOpacity
             style={styles.outlineButton}

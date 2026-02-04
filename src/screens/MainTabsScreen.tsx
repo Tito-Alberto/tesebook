@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabaseClient';
 const Tab = createBottomTabNavigator();
 
 const MainTabsScreen: React.FC = () => {
+  // Contador global de mensagens nao lidas
   const [chatBadgeCount, setChatBadgeCount] = useState(0);
 
   useEffect(() => {
@@ -19,6 +20,7 @@ const MainTabsScreen: React.FC = () => {
     let channel: any = null;
     let authSubscription: any = null;
 
+    // Busca total de mensagens nao lidas do usuario
     const fetchUnreadCount = async () => {
       try {
         const {
@@ -74,6 +76,7 @@ const MainTabsScreen: React.FC = () => {
       }
     };
 
+    // Assina realtime para atualizar o badge
     const setupChannel = async () => {
       const {
         data: { user },
@@ -128,6 +131,7 @@ const MainTabsScreen: React.FC = () => {
       await setupChannel();
     };
 
+    // Atualiza badge ao iniciar e ao trocar sessao
     refresh();
     authSubscription = supabase.auth.onAuthStateChange(() => {
       if (channel) {
@@ -161,6 +165,7 @@ const MainTabsScreen: React.FC = () => {
         tabBarActiveTintColor: '#fff',
         tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.65)',
         tabBarIcon: ({ color, size }) => {
+          // Icones das abas e badge do chat
           let iconName: keyof typeof Ionicons.glyphMap = 'home-outline';
 
           if (route.name === 'Home') iconName = 'home-outline';

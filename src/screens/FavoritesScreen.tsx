@@ -27,11 +27,13 @@ interface Work {
 
 const FavoritesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  // Estado de favoritos e feedback
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [removingId, setRemovingId] = useState<string | null>(null);
 
+  // Carrega favoritos do usuario
   const fetchFavorites = useCallback(async (options?: { silent?: boolean; activeRef?: { current: boolean } }) => {
     const activeRef = options?.activeRef;
     const isActive = () => !activeRef || activeRef.current;
@@ -89,6 +91,7 @@ const FavoritesScreen: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
+      // Recarrega ao entrar na tela
       const activeRef = { current: true };
       fetchFavorites({ activeRef });
       return () => {
@@ -98,20 +101,24 @@ const FavoritesScreen: React.FC = () => {
   );
 
   useEffect(() => {
+    // Atualiza quando um favorito muda em outra tela
     const unsubscribe = favoritesEvents.subscribe(() => {
       fetchFavorites({ silent: true });
     });
     return unsubscribe;
   }, [fetchFavorites]);
 
+  // Navegacao para leitura
   const handleOpenWork = (id: string, allow_download?: boolean) => {
     navigation.navigate('ReadWork', { workId: id, allowDownload: allow_download });
   };
 
+  // Abre chat
   const handleMessage = () => {
     navigation.navigate('Chat');
   };
 
+  // Remove favorito
   const handleRemoveFavorite = async (workId: string) => {
     if (removingId) return;
     setRemovingId(workId);
@@ -140,6 +147,7 @@ const FavoritesScreen: React.FC = () => {
     }
   };
 
+  // Renderiza card de favorito
   const renderFavoriteWork = ({ item }: { item: Work }) => (
     <TouchableOpacity style={styles.workCard} activeOpacity={0.85} onPress={() => handleOpenWork(item.id, item.allow_download)}>
       <View style={styles.workCover}>
@@ -181,6 +189,7 @@ const FavoritesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Cabecalho */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Favoritos</Text>
         <View style={styles.logoContainer}>
@@ -197,6 +206,7 @@ const FavoritesScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Lista de favoritos */}
         {error ? <Text style={[styles.headerTitle, { color: '#d32f2f', fontSize: 14 }]}>{error}</Text> : null}
         <FlatList
           data={works}

@@ -16,6 +16,8 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 import { getFileExtension, getImageContentType, resolveStorageUrl, uploadToBucket } from '../lib/supabaseStorage';
 
+// Opcoes fixas de selecao
+
 const institutionOptions = [
   'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
   'INSTITUTO SUPERIOR TÉCNICO DE ANGOLA (ISTA)',
@@ -87,6 +89,7 @@ const courseOptions = [
 const degreeOptions = ['Licenciatura', 'Mestrado', 'Pos-Graduação'];
 
 const EditProfileScreen: React.FC = () => {
+  // Estado do formulario e modais
   const navigation = useNavigation<any>();
   const [course, setCourse] = useState('');
   const [institution, setInstitution] = useState('');
@@ -100,6 +103,7 @@ const EditProfileScreen: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Carrega dados do perfil atual
   useEffect(() => {
     let active = true;
     const loadProfile = async () => {
@@ -145,6 +149,7 @@ const EditProfileScreen: React.FC = () => {
     };
   }, []);
 
+  // Seleciona nova foto do perfil
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -166,6 +171,7 @@ const EditProfileScreen: React.FC = () => {
     }
   };
 
+  // Salva alteracoes do perfil
   const handleConfirm = async () => {
     setLoading(true);
     try {
@@ -236,6 +242,7 @@ const EditProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Voltar */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -248,6 +255,7 @@ const EditProfileScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Foto do perfil */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
             {imagePreview ? (
@@ -266,6 +274,7 @@ const EditProfileScreen: React.FC = () => {
 
         {error ? <Text style={[styles.changePhotoText, { color: '#d32f2f' }]}>{error}</Text> : null}
 
+        {/* Campos editaveis */}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Curso</Text>
@@ -292,6 +301,7 @@ const EditProfileScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Botao de salvar */}
         <TouchableOpacity
           style={[styles.confirmButton, loading && { opacity: 0.7 }]}
           onPress={handleConfirm}

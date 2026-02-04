@@ -25,6 +25,7 @@ interface ChatUser {
 
 const ChatListScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  // Estado da lista de conversas
   const [chatUsers, setChatUsers] = useState<ChatUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -33,6 +34,7 @@ const ChatListScreen: React.FC = () => {
     let isActive = true;
     let channel: any = null;
     let unsubscribeFocus: any = null;
+    // Carrega usuarios com conversa e contadores
     const fetchUsers = async () => {
       setLoading(true);
       try {
@@ -54,6 +56,7 @@ const ChatListScreen: React.FC = () => {
         if (messagesError) throw messagesError;
 
         if (!channel) {
+          // Realtime para mensagens e leituras
           channel = supabase
             .channel(`messages-list-${currentUserId}`)
             .on(
@@ -207,6 +210,7 @@ const ChatListScreen: React.FC = () => {
   }, [navigation]);
 
   const handleUserPress = (user: ChatUser) => {
+    // Abre chat com usuario selecionado
     navigation.navigate('Chat', {
       userId: user.id,
       userName: user.name,
@@ -216,6 +220,7 @@ const ChatListScreen: React.FC = () => {
     });
   };
 
+  // Renderiza item da lista
   const renderUserItem = ({ item }: { item: ChatUser }) => (
     <TouchableOpacity
       style={styles.userItem}
@@ -246,7 +251,7 @@ const ChatListScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Cabecalho */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image
@@ -257,7 +262,7 @@ const ChatListScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Users List */}
+      {/* Lista de conversas */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

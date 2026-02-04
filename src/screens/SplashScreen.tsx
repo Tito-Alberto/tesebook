@@ -11,6 +11,7 @@ type Props = {
 };
 
 const SplashScreen: React.FC<Props> = ({ onFinish, duration = 1200, fonts, assets = [] }) => {
+  // Estado de carregamento e animacao
   const [ready, setReady] = useState(false);
   const opacity = React.useRef(new Animated.Value(0)).current;
   const scale = React.useRef(new Animated.Value(0.96)).current;
@@ -18,6 +19,7 @@ const SplashScreen: React.FC<Props> = ({ onFinish, duration = 1200, fonts, asset
   useEffect(() => {
     let mounted = true;
 
+    // Carrega imagens e fontes antes de exibir o app
     async function loadResources() {
       try {
         const imageAssets = [require('../../assets/tesebook.png'), ...assets];
@@ -42,6 +44,7 @@ const SplashScreen: React.FC<Props> = ({ onFinish, duration = 1200, fonts, asset
   useEffect(() => {
     if (!ready) return;
 
+    // Sequencia de animacao de entrada e saida
     Animated.sequence([
       Animated.parallel([
         Animated.timing(opacity, { toValue: 1, duration: 420, useNativeDriver: true }),
@@ -55,6 +58,7 @@ const SplashScreen: React.FC<Props> = ({ onFinish, duration = 1200, fonts, asset
     ]).start(() => onFinish && onFinish());
   }, [ready, duration, onFinish, opacity, scale]);
 
+  // Ajusta o tamanho do logo conforme a tela
   const windowWidth = Dimensions.get('window').width;
   // Increase logo size: use a larger fraction of the screen and a slightly taller aspect
   const logoWidth = Math.min(760, windowWidth * 0.9);

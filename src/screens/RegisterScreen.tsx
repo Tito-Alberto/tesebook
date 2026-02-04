@@ -19,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabaseClient';
 import { getFileExtension, getImageContentType, uploadToBucket } from '../lib/supabaseStorage';
 
+// Helpers para normalizar e validar email
+
 const normalizeEmail = (raw: string) => {
   const trimmed = raw.trim().toLowerCase();
   if (!trimmed) return '';
@@ -34,6 +36,7 @@ const isValidEmail = (raw: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
 };
 
+// Opcoes fixas de selecao
 const courseOptions = [
   'DIREITO',
   'CIÊNCIA POLÍTICA',
@@ -107,6 +110,7 @@ const degreeOptions = ['Licenciatura', 'Mestrado', 'Pós-Graduação'];
 const EMAIL_NOT_CONFIRMED_REGEX = /email\s+not\s+confirmed/i;
 
 const RegisterScreen: React.FC = () => {
+  // Estado do formulario e modais
   const navigation = useNavigation<any>();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -127,6 +131,7 @@ const RegisterScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
 
+  // Validacao basica dos campos
   const validate = () => {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = 'Digite seu nome completo.';
@@ -143,6 +148,7 @@ const RegisterScreen: React.FC = () => {
     return Object.keys(next).length === 0;
   };
 
+  // Seleciona foto do usuario
   const pickUserPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -163,6 +169,7 @@ const RegisterScreen: React.FC = () => {
     }
   };
 
+  // Cadastro completo com foto e perfil
   const handleRegister = async () => {
     if (!validate()) return;
     setAuthError('');
@@ -288,6 +295,7 @@ const RegisterScreen: React.FC = () => {
     }
   };
 
+  // Reenvio de confirmacao de email
   const handleResend = async () => {
     if (!resendEmail) return;
     setResendLoading(true);
@@ -311,6 +319,7 @@ const RegisterScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {/* Cabecalho com logo */}
         <View style={styles.top}>
           <TouchableOpacity
             style={styles.backButton}
@@ -322,6 +331,7 @@ const RegisterScreen: React.FC = () => {
           <Image source={require('../../assets/tesebook.png')} style={styles.logo} resizeMode="contain" />
         </View>
 
+        {/* Formulario de cadastro */}
         <View style={styles.form}>
           <View style={styles.photoWrapper}>
             <TouchableOpacity onPress={pickUserPhoto} style={styles.photoButton} activeOpacity={0.85}>

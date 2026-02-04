@@ -18,6 +18,7 @@ import { getFileExtension, getImageContentType, uploadToBucket } from '../lib/su
 
 const AddWorkScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  // Estado do formulario e arquivos
   const pdfPlaceholder = 'Arquivo PDF';
   const [pdfFile, setPdfFile] = useState(pdfPlaceholder);
   const [pdfUri, setPdfUri] = useState<string | null>(null);
@@ -28,6 +29,7 @@ const AddWorkScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [uploading, setUploading] = useState(false);
 
+  // Seleciona imagem de capa
   const pickCoverImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -49,6 +51,7 @@ const AddWorkScreen: React.FC = () => {
     }
   };
 
+  // Seleciona arquivo PDF
   const pickPdf = async () => {
     const result = await DocumentPicker.getDocumentAsync({
       type: 'application/pdf',
@@ -65,6 +68,7 @@ const AddWorkScreen: React.FC = () => {
     }
   };
 
+  // Envia trabalho com PDF e capa
   const handleAdd = async () => {
     if (!topic.trim()) {
       setErrorMessage('Digite o tema.');
@@ -168,12 +172,14 @@ const AddWorkScreen: React.FC = () => {
     }
   };
 
+  // Cancela e volta
   const handleCancel = () => {
     navigation.goBack();
   };
 
   return (
     <View style={styles.container}>
+      {/* Cabecalho */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -196,6 +202,7 @@ const AddWorkScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Capa do trabalho */}
         <TouchableOpacity
           style={styles.coverPhotoContainer}
           activeOpacity={0.8}
@@ -211,6 +218,7 @@ const AddWorkScreen: React.FC = () => {
           )}
         </TouchableOpacity>
 
+        {/* Campos do formulario */}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Adicionar trabalho</Text>
@@ -258,6 +266,7 @@ const AddWorkScreen: React.FC = () => {
         ) : null}
         </View>
 
+        {/* Acoes */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={[styles.addButton, uploading && { opacity: 0.7 }]}

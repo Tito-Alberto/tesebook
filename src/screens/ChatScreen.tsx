@@ -36,6 +36,7 @@ const ChatScreen: React.FC = () => {
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
 
+  // Dados do usuario alvo (fallback do header)
   const fallbackName = params.userName || 'Nome do Estudante';
   const fallbackCourse = params.userCourse || 'Curso';
   const fallbackInstitution = params.userInstitution || 'Instituicao';
@@ -53,6 +54,7 @@ const ChatScreen: React.FC = () => {
   const [messagesError, setMessagesError] = useState('');
   const [sending, setSending] = useState(false);
 
+  // Salva leitura no Supabase para sincronizar
   const updateLastRead = async (timestamp?: string | null) => {
     if (!currentUserId || !targetUserId || !timestamp) return;
     try {
@@ -84,6 +86,7 @@ const ChatScreen: React.FC = () => {
     (msg.sender_id === userA && msg.receiver_id === userB) ||
     (msg.sender_id === userB && msg.receiver_id === userA);
 
+  // Envio de mensagem
   const handleSend = async () => {
     if (!message.trim() || !currentUserId || !targetUserId || sending) return;
     const body = message.trim();
@@ -116,6 +119,7 @@ const ChatScreen: React.FC = () => {
   };
 
   useEffect(() => {
+    // Busca usuario logado
     let isActive = true;
     const fetchCurrentUser = async () => {
       const {
@@ -131,6 +135,7 @@ const ChatScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Carrega historico da conversa
     let isActive = true;
     const fetchMessages = async () => {
       if (!targetUserId) {
@@ -178,6 +183,7 @@ const ChatScreen: React.FC = () => {
   }, [currentUserId, targetUserId]);
 
   useEffect(() => {
+    // Escuta novas mensagens em realtime
     if (!currentUserId) return;
     const channel = supabase
       .channel(`messages-${currentUserId}`)
@@ -208,6 +214,7 @@ const ChatScreen: React.FC = () => {
   }, [currentUserId, targetUserId]);
 
   useEffect(() => {
+    // Busca dados do perfil alvo quando faltam infos
     let isActive = true;
     const shouldFetch =
       !!targetUserId &&
@@ -298,7 +305,7 @@ const ChatScreen: React.FC = () => {
         <View style={styles.headerRight} />
       </View>
 
-      {/* Messages Area */}
+      {/* Mensagens */}
       <ScrollView
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
@@ -330,7 +337,7 @@ const ChatScreen: React.FC = () => {
         ))}
       </ScrollView>
 
-      {/* Input Area */}
+      {/* Campo de envio */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
