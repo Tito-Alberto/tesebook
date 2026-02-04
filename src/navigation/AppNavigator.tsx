@@ -11,20 +11,25 @@ import AddWorkScreen from '../screens/AddWorkScreen';
 import ReadWorkScreen from '../screens/ReadWorkScreen';
 import ChatScreen from '../screens/ChatScreen';
 
+// Stack principal de navegacao
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   return (
     <NavigationContainer>
+      {/* // Rotas principais do app */}
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
           animation: 'default',
         }}
       >
+        {/* // Autenticacao */}
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
+        {/* // Abas principais */}
         <Stack.Screen name="MainTabs" component={MainTabsScreen} />
+        {/* // Telas do usuario */}
         <Stack.Screen
           name="Profile"
           component={ProfileScreen}
@@ -45,6 +50,7 @@ export default function AppNavigator() {
             gestureDirection: 'horizontal',
           }}
         />
+        {/* // Conteudos e leitura */}
         <Stack.Screen
           name="AddTopic"
           component={AddTopicScreen}
@@ -75,6 +81,7 @@ export default function AppNavigator() {
             gestureDirection: 'horizontal',
           }}
         />
+        {/* // Conversas */}
         <Stack.Screen
           name="Chat"
           component={ChatScreen}

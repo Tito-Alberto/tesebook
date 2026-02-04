@@ -2,9 +2,11 @@ import { supabase } from './supabaseClient';
 import * as FileSystem from 'expo-file-system/legacy';
 import { ensureFileUri } from './fileUtils';
 
+// Credenciais para uso direto em upload via HTTP
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_KEY ?? '';
 
+// Regex e tipos para resolver URLs do Storage
 const STORAGE_URL_RE = /\/storage\/v1\/object\/(?:public\/)?([^/]+)\/(.+)$/i;
 const IMAGE_CONTENT_TYPES: Record<string, string> = {
   jpg: 'image/jpeg',
@@ -15,6 +17,7 @@ const IMAGE_CONTENT_TYPES: Record<string, string> = {
   heif: 'image/heif',
 };
 
+// Upload com opcao de usar FileSystem (melhor para arquivos grandes)
 export async function uploadToBucket(
   uri: string,
   bucket: string,
@@ -77,6 +80,7 @@ export async function uploadToBucket(
   return data.publicUrl;
 }
 
+// Extrai extensao do arquivo
 export function getFileExtension(value?: string | null) {
   if (!value) return '';
   const cleanValue = value.split('?')[0];
@@ -86,6 +90,7 @@ export function getFileExtension(value?: string | null) {
   return cleanValue.slice(lastDot + 1).toLowerCase();
 }
 
+// Resolve content-type de imagem
 export function getImageContentType(
   value?: string | null,
   mimeType?: string | null,
@@ -96,6 +101,7 @@ export function getImageContentType(
   return IMAGE_CONTENT_TYPES[ext] || fallback;
 }
 
+// Converte URL publica em URL assinada temporaria
 export async function resolveStorageUrl(url?: string | null, expiresIn = 60 * 60) {
   if (!url) return null;
   if (url.startsWith('file://') || url.startsWith('ph://')) return url;
