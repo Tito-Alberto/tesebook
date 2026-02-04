@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 import { resolveStorageUrl } from '../lib/supabaseStorage';
+import { favoritesEvents } from '../lib/favoritesEvents';
 
 interface Work {
   id: string;
@@ -29,70 +30,79 @@ const FavoritesScreen: React.FC = () => {
   const [works, setWorks] = useState<Work[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const fetchFavorites = useCallback(async (options?: { silent?: boolean; activeRef?: { current: boolean } }) => {
+    const activeRef = options?.activeRef;
+    const isActive = () => !activeRef || activeRef.current;
+    if (!isActive()) return;
+    if (!options?.silent) setLoading(true);
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        if (!isActive()) return;
+        setError('Faca login para ver seus favoritos.');
+        setWorks([]);
+        return;
+      }
+
+      const { data: favorites, error: favError } = await supabase
+        .from('favorites')
+        .select('work_id')
+        .eq('user_id', user.id);
+      if (favError) throw favError;
+      const workIds = (favorites || []).map((f) => f.work_id);
+      if (workIds.length === 0) {
+        if (!isActive()) return;
+        setError('');
+        setWorks([]);
+        return;
+      }
+
+      const { data: worksData, error: worksError } = await supabase
+        .from('works')
+        .select('*')
+        .in('id', workIds);
+      if (worksError) throw worksError;
+      if (!isActive()) return;
+      setError('');
+      const resolvedWorks = await Promise.all(
+        (worksData || []).map(async (work) => {
+          if (!work.cover_url) return work;
+          const resolvedUrl = await resolveStorageUrl(work.cover_url);
+          return { ...work, cover_url: resolvedUrl || work.cover_url };
+        }),
+      );
+      if (!isActive()) return;
+      setWorks(resolvedWorks as Work[]);
+    } catch (err: any) {
+      if (!isActive()) return;
+      setError(err?.message || 'Erro ao carregar favoritos.');
+      setWorks([]);
+    } finally {
+      if (!options?.silent && isActive()) setLoading(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      let isActive = true;
-      const fetchFavorites = async () => {
-        setLoading(true);
-        try {
-          const {
-            data: { user },
-            error: userError,
-          } = await supabase.auth.getUser();
-          if (userError || !user) {
-            if (!isActive) return;
-            setError('Faca login para ver seus favoritos.');
-            setWorks([]);
-            setLoading(false);
-            return;
-          }
-
-          const { data: favorites, error: favError } = await supabase
-            .from('favorites')
-            .select('work_id')
-            .eq('user_id', user.id);
-          if (favError) throw favError;
-          const workIds = (favorites || []).map((f) => f.work_id);
-          if (workIds.length === 0) {
-            if (!isActive) return;
-            setError('');
-            setWorks([]);
-            setLoading(false);
-            return;
-          }
-
-          const { data: worksData, error: worksError } = await supabase
-            .from('works')
-            .select('*')
-            .in('id', workIds);
-          if (worksError) throw worksError;
-          if (!isActive) return;
-          setError('');
-          const resolvedWorks = await Promise.all(
-            (worksData || []).map(async (work) => {
-              if (!work.cover_url) return work;
-              const resolvedUrl = await resolveStorageUrl(work.cover_url);
-              return { ...work, cover_url: resolvedUrl || work.cover_url };
-            }),
-          );
-          if (!isActive) return;
-          setWorks(resolvedWorks as Work[]);
-        } catch (err: any) {
-          if (!isActive) return;
-          setError(err?.message || 'Erro ao carregar favoritos.');
-          setWorks([]);
-        } finally {
-          if (isActive) setLoading(false);
-        }
-      };
-
-      fetchFavorites();
+      const activeRef = { current: true };
+      fetchFavorites({ activeRef });
       return () => {
-        isActive = false;
+        activeRef.current = false;
       };
-    }, []),
+    }, [fetchFavorites]),
   );
+
+  useEffect(() => {
+    const unsubscribe = favoritesEvents.subscribe(() => {
+      fetchFavorites({ silent: true });
+    });
+    return unsubscribe;
+  }, [fetchFavorites]);
 
   const handleOpenWork = (id: string, allow_download?: boolean) => {
     navigation.navigate('ReadWork', { workId: id, allowDownload: allow_download });
@@ -100,6 +110,34 @@ const FavoritesScreen: React.FC = () => {
 
   const handleMessage = () => {
     navigation.navigate('Chat');
+  };
+
+  const handleRemoveFavorite = async (workId: string) => {
+    if (removingId) return;
+    setRemovingId(workId);
+    setError('');
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError || !user) {
+        setError('Faca login para editar seus favoritos.');
+        return;
+      }
+      const { error: deleteError } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('work_id', workId);
+      if (deleteError) throw deleteError;
+      setWorks((prev) => prev.filter((work) => work.id !== workId));
+      favoritesEvents.emit({ workId, action: 'removed' });
+    } catch (err: any) {
+      setError(err?.message || 'Erro ao remover favorito.');
+    } finally {
+      setRemovingId(null);
+    }
   };
 
   const renderFavoriteWork = ({ item }: { item: Work }) => (
@@ -118,9 +156,24 @@ const FavoritesScreen: React.FC = () => {
         <Text style={styles.academicDegree}>{item.academic_degree || 'Grau'}</Text>
       </View>
       <View style={styles.actionsColumn}>
-        <TouchableOpacity style={styles.messageButton} onPress={handleMessage} activeOpacity={0.8}>
-          <Ionicons name="chatbubbles-outline" size={18} color="#fff" />
-          <Text style={styles.messageButtonText}>Mensagem</Text>
+        <TouchableOpacity
+          style={styles.iconActionButton}
+          onPress={handleMessage}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="chatbubble-ellipses-outline" size={22} color="#6b86f0" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.iconActionButton,
+            styles.removeIconButton,
+            removingId === item.id && styles.removeButtonDisabled,
+          ]}
+          onPress={() => handleRemoveFavorite(item.id)}
+          activeOpacity={0.8}
+          disabled={removingId === item.id}
+        >
+          <Ionicons name="trash-outline" size={22} color="#d32f2f" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -254,19 +307,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginLeft: 8,
   },
-  messageButton: {
-    flexDirection: 'row',
+  iconActionButton: {
+    padding: 6,
     alignItems: 'center',
-    backgroundColor: '#6b86f0',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
   },
-  messageButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 6,
+  removeIconButton: {
+    marginTop: 8,
+  },
+  removeButtonDisabled: {
+    opacity: 0.45,
   },
 });
 

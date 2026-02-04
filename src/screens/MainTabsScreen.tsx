@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from './HomeScreen';
 import FavoritesScreen from './FavoritesScreen';
 import SearchScreen from './SearchScreen';
-import ReadWorkScreen from './ReadWorkScreen';
+import ReadLibraryScreen from './ReadLibraryScreen';
 import ChatListScreen from './ChatListScreen';
 
 const Tab = createBottomTabNavigator();
@@ -32,7 +32,7 @@ const MainTabsScreen: React.FC = () => {
           if (route.name === 'Home') iconName = 'home-outline';
           else if (route.name === 'Favorites') iconName = 'heart-outline';
           else if (route.name === 'Search') iconName = 'search-outline';
-          else if (route.name === 'ReadWork') iconName = 'document-text-outline';
+          else if (route.name === 'Read') iconName = 'document-text-outline';
           else if (route.name === 'ChatList') iconName = 'chatbubbles-outline';
 
           if (route.name !== 'ChatList') {
@@ -55,7 +55,7 @@ const MainTabsScreen: React.FC = () => {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Favorites" component={FavoritesScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
-      <Tab.Screen name="ReadWork" component={ReadWorkScreen} />
+      <Tab.Screen name="Read" component={ReadLibraryScreen} />
       <Tab.Screen name="ChatList" component={ChatListScreen} />
     </Tab.Navigator>
   );

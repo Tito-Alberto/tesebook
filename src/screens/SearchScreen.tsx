@@ -40,15 +40,79 @@ const SearchScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const courseOptions = useMemo(() => {
-    const list = works.map((w) => w.course).filter(Boolean) as string[];
-    return Array.from(new Set(list)).sort();
-  }, [works]);
+  const courseOptions = useMemo(
+    () => [
+      'DIREITO',
+      'CIÊNCIA POLÍTICA',
+      'RELAÇÕES INTERNACIONAIS',
+      'SOCIOLOGIA',
+      'PSICOLOGIA',
+      'FILOSOFIA',
+      'HISTÓRIA',
+      'CIÊNCIAS DA EDUCAÇÃO',
+      'PEDAGOGIA',
+      'EDUCAÇÃO DE INFÂNCIA',
+      'ECONOMIA',
+      'GESTÃO DE EMPRESAS',
+      'ADMINISTRAÇÃO PÚBLICA',
+      'CONTABILIDADE',
+      'FINANÇAS',
+      'AUDITORIA',
+      'MARKETING',
+      'RECURSOS HUMANOS',
+      'COMÉRCIO INTERNACIONAL',
+      'GESTÃO DE RECURSOS HUMANOS',
+      'GESTÃO HOSPITALAR',
+      'MATEMÁTICA',
+      'FÍSICA',
+      'QUÍMICA',
+      'ESTATÍSTICA',
+      'INFORMÁTICA',
+      'ENGENHARIA INFORMÁTICA',
+      'CIÊNCIA DA COMPUTAÇÃO',
+      'SISTEMAS DE INFORMAÇÃO',
+      'TECNOLOGIAS DE INFORMAÇÃO',
+      'TELECOMUNICAÇÕES',
+      'ENGENHARIA CIVIL',
+      'ENGENHARIA MECÂNICA',
+      'ENGENHARIA ELÉTRICA',
+      'ENGENHARIA ELETROTÉCNICA',
+      'ENGENHARIA DE MINAS',
+      'ENGENHARIA GEOLÓGICA',
+      'ENGENHARIA QUÍMICA',
+      'ENGENHARIA PETROLÍFERA',
+      'ENGENHARIA AMBIENTAL',
+      'ENGENHARIA DE PRODUÇÃO',
+    ],
+    [],
+  );
 
-  const institutionOptions = useMemo(() => {
-    const list = works.map((w) => w.institution).filter(Boolean) as string[];
-    return Array.from(new Set(list)).sort();
-  }, [works]);
+  const institutionOptions = useMemo(
+    () => [
+      'INSTITUTO SUPERIOR POLITÉCNICO DE TECNOLOGIAS E CIÊNCIAS (ISPTEC)',
+      'INSTITUTO SUPERIOR TÉCNICO DE ANGOLA (ISTA)',
+      'INSTITUTO SUPERIOR DE CIÊNCIAS DA EDUCAÇÃO (ISCED)',
+      'INSTITUTO SUPERIOR POLITÉCNICO ALVAREZ DO PACO (ISPAP)',
+      'INSTITUTO SUPERIOR METODISTA DE ANGOLA (ISMA)',
+      'INSTITUTO SUPERIOR JEAN PIAGET DE ANGOLA (ISPIAGET)',
+      'INSTITUTO SUPERIOR POLITÉCNICO GREGÓRIO SEMEDO (ISPGS)',
+      'INSTITUTO SUPERIOR POLITÉCNICO DA UNIVERSIDADE PRIVADA DE ANGOLA (ISP-UPRA)',
+      'INSTITUTO SUPERIOR POLITÉCNICO INDEPENDENTE (ISPI)',
+      'INSTITUTO SUPERIOR TÉCNICO ÓSCAR RIBAS (ISTOR)',
+      'UNIVERSIDADE AGOSTINHO NETO (UAN)',
+      'UNIVERSIDADE KATYAVALA BWILA (UKB)',
+      'UNIVERSIDADE JOSÉ EDUARDO DOS SANTOS (UJES)',
+      'UNIVERSIDADE MANDUME YA NDEMUFAYO (UMN)',
+      'UNIVERSIDADE LUEJI A’NKONDE (ULAN)',
+      'UNIVERSIDADE CUITO CUANAVALE (UCC)',
+      'UNIVERSIDADE KIMPA VITA (UKV)',
+      'UNIVERSIDADE 11 DE NOVEMBRO (UON)',
+      'UNIVERSIDADE CATÓLICA DE ANGOLA (UCAN)',
+      'UNIVERSIDADE METODISTA DE ANGOLA (UMA)',
+      'UNIVERSIDADE LUSÍADA DE ANGOLA (ULA)',
+    ],
+    [],
+  );
 
   useEffect(() => {
     const fetchWorks = async () => {
