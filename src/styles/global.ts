@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+// Estilos globais reutilizaveis
 const globalStyles = StyleSheet.create({
   container: {
     flex: 1,
