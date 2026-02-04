@@ -242,7 +242,7 @@ const EditProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Voltar */}
+      {/* // Voltar */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -255,7 +255,7 @@ const EditProfileScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Foto do perfil */}
+        {/* // Foto do perfil */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
             {imagePreview ? (
@@ -274,7 +274,7 @@ const EditProfileScreen: React.FC = () => {
 
         {error ? <Text style={[styles.changePhotoText, { color: '#d32f2f' }]}>{error}</Text> : null}
 
-        {/* Campos editaveis */}
+        {/* // Campos editaveis */}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Curso</Text>
@@ -301,7 +301,7 @@ const EditProfileScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Botao de salvar */}
+        {/* // Botao de salvar */}
         <TouchableOpacity
           style={[styles.confirmButton, loading && { opacity: 0.7 }]}
           onPress={handleConfirm}

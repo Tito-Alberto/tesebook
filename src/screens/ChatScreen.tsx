@@ -271,7 +271,7 @@ const ChatScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      {/* Header */}
+      {/* // Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -305,7 +305,7 @@ const ChatScreen: React.FC = () => {
         <View style={styles.headerRight} />
       </View>
 
-      {/* Mensagens */}
+      {/* // Mensagens */}
       <ScrollView
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
@@ -337,7 +337,7 @@ const ChatScreen: React.FC = () => {
         ))}
       </ScrollView>
 
-      {/* Campo de envio */}
+      {/* // Campo de envio */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}

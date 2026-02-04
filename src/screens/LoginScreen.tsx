@@ -132,7 +132,7 @@ const LoginScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={{ flex: 1 }}>
-        {/* Loading bloqueante */}
+        {/* // Loading bloqueante */}
         {loading ? (
           <View style={styles.loadingOverlay} pointerEvents="auto">
             <View style={styles.loadingCard}>
@@ -140,12 +140,12 @@ const LoginScreen: React.FC = () => {
             </View>
           </View>
         ) : null}
-        {/* Logo */}
+        {/* // Logo */}
         <View style={styles.top}>
           <Image source={require('../../assets/tesebook.png')} style={styles.logo} resizeMode="contain" />
         </View>
 
-        {/* Formulario de login */}
+        {/* // Formulario de login */}
         <View style={styles.form}>
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputWrap}>
@@ -188,7 +188,7 @@ const LoginScreen: React.FC = () => {
             </TouchableOpacity>
           ) : null}
 
-          {/* Acao principal */}
+          {/* // Acao principal */}
           <TouchableOpacity
             style={[styles.primaryButton, loading && { opacity: 0.7 }]}
             activeOpacity={0.85}
@@ -198,13 +198,13 @@ const LoginScreen: React.FC = () => {
             <Text style={styles.primaryButtonText}>{loading ? 'Entrando...' : 'Entrar'}</Text>
           </TouchableOpacity>
 
-          {/* Link de recuperacao */}
+          {/* // Link de recuperacao */}
           <TouchableOpacity style={styles.forgot}>
             <Text style={styles.forgotText}>Esqueceu sua senha ?</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Acesso ao cadastro */}
+        {/* // Acesso ao cadastro */}
         <View style={styles.bottom} pointerEvents="box-none">
           <TouchableOpacity
             style={styles.outlineButton}

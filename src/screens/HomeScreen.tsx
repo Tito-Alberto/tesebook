@@ -279,7 +279,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabecalho */}
+      {/* // Cabecalho */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerIcon}
@@ -319,7 +319,7 @@ const HomeScreen: React.FC = () => {
       >
         {error ? <Text style={[styles.sectionTitle, { color: '#d32f2f', paddingHorizontal: 16 }]}>{error}</Text> : null}
 
-        {/* Pesquisa rapida */}
+        {/* // Pesquisa rapida */}
         <View style={styles.searchBar}>
           <TextInput
             placeholder="Pesquisar"
@@ -331,7 +331,7 @@ const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Temas sugeridos */}
+        {/* // Temas sugeridos */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Temas sugeridos</Text>
           <FlatList
@@ -347,7 +347,7 @@ const HomeScreen: React.FC = () => {
           />
         </View>
 
-        {/* Trabalhos recentes */}
+        {/* // Trabalhos recentes */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
             {loading ? 'Carregando trabalhos...' : 'Trabalhos Recentes'}
@@ -367,7 +367,7 @@ const HomeScreen: React.FC = () => {
           />
         </View>
 
-        {/* Melhores trabalhos */}
+        {/* // Melhores trabalhos */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Melhores Trabalhos</Text>
           <FlatList
@@ -385,7 +385,7 @@ const HomeScreen: React.FC = () => {
           />
         </View>
 
-        {/* Mais visualizados */}
+        {/* // Mais visualizados */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Trabalhos mais visualizados</Text>
           <FlatList
@@ -404,7 +404,7 @@ const HomeScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Modal de detalhes do tema */}
+      {/* // Modal de detalhes do tema */}
       <Modal
         visible={topicModalVisible}
         animationType="fade"

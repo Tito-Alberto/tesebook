@@ -193,7 +193,7 @@ const SearchScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabecalho */}
+      {/* // Cabecalho */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image
@@ -204,7 +204,7 @@ const SearchScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Abas e filtros */}
+      {/* // Abas e filtros */}
       <View style={styles.tabsContainer}>
         <View style={styles.tabsRow}>
           <TouchableOpacity
@@ -252,7 +252,7 @@ const SearchScreen: React.FC = () => {
         </View>
 
         {searchVisible && (
-          {/* Barra de pesquisa */}
+          {/* // Barra de pesquisa */}
           <View style={styles.searchBar}>
             <Ionicons name="search" size={20} color="#6b86f0" style={{ marginRight: 8 }} />
             <TextInput
@@ -267,7 +267,7 @@ const SearchScreen: React.FC = () => {
         )}
 
         <View style={styles.filterRow}>
-          {/* Filtro por aba + limpar */}
+          {/* // Filtro por aba + limpar */}
           {activeTab === 'Curso' ? (
             <TouchableOpacity
               style={styles.filterButton}
@@ -310,7 +310,7 @@ const SearchScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Lista de resultados */}
+        {/* // Lista de resultados */}
         {error ? <Text style={[styles.tabText, { color: '#d32f2f', paddingHorizontal: 16 }]}>{error}</Text> : null}
         <FlatList
           data={filteredWorks}

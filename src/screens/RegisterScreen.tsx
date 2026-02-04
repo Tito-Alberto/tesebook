@@ -319,7 +319,7 @@ const RegisterScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Cabecalho com logo */}
+        {/* // Cabecalho com logo */}
         <View style={styles.top}>
           <TouchableOpacity
             style={styles.backButton}
@@ -331,7 +331,7 @@ const RegisterScreen: React.FC = () => {
           <Image source={require('../../assets/tesebook.png')} style={styles.logo} resizeMode="contain" />
         </View>
 
-        {/* Formulario de cadastro */}
+        {/* // Formulario de cadastro */}
         <View style={styles.form}>
           <View style={styles.photoWrapper}>
             <TouchableOpacity onPress={pickUserPhoto} style={styles.photoButton} activeOpacity={0.85}>
@@ -461,7 +461,7 @@ const RegisterScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Modal Curso */}
+      {/* // Modal Curso */}
       <Modal
         visible={courseModalVisible}
         animationType="slide"
@@ -492,7 +492,7 @@ const RegisterScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Modal Instituicao */}
+      {/* // Modal Instituicao */}
       <Modal
         visible={institutionModalVisible}
         animationType="slide"
@@ -523,7 +523,7 @@ const RegisterScreen: React.FC = () => {
         </View>
       </Modal>
 
-      {/* Modal Grau */}
+      {/* // Modal Grau */}
       <Modal
         visible={degreeModalVisible}
         animationType="slide"

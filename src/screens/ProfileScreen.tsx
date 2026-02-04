@@ -71,7 +71,7 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Voltar */}
+      {/* // Voltar */}
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
@@ -84,7 +84,7 @@ const ProfileScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Foto e nome */}
+        {/* // Foto e nome */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatarCircle}>
             {avatarUrl ? (
@@ -104,7 +104,7 @@ const ProfileScreen: React.FC = () => {
 
         {error ? <Text style={[styles.detailValue, { color: '#d32f2f', textAlign: 'center' }]}>{error}</Text> : null}
 
-        {/* Detalhes do perfil */}
+        {/* // Detalhes do perfil */}
         <View style={styles.detailsContainer}>
           <Text style={styles.detailLabel}>Curso</Text>
           <Text style={styles.detailValue}>{profile?.course || '-'}</Text>
@@ -116,7 +116,7 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.detailValue}>{profile?.academic_degree || '-'}</Text>
         </View>
 
-        {/* Acoes do perfil */}
+        {/* // Acoes do perfil */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={styles.primaryButton}

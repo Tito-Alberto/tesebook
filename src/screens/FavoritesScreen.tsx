@@ -189,7 +189,7 @@ const FavoritesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabecalho */}
+      {/* // Cabecalho */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Favoritos</Text>
         <View style={styles.logoContainer}>
@@ -206,7 +206,7 @@ const FavoritesScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Lista de favoritos */}
+        {/* // Lista de favoritos */}
         {error ? <Text style={[styles.headerTitle, { color: '#d32f2f', fontSize: 14 }]}>{error}</Text> : null}
         <FlatList
           data={works}

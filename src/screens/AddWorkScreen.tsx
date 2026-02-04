@@ -179,7 +179,7 @@ const AddWorkScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabecalho */}
+      {/* // Cabecalho */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -202,7 +202,7 @@ const AddWorkScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Capa do trabalho */}
+        {/* // Capa do trabalho */}
         <TouchableOpacity
           style={styles.coverPhotoContainer}
           activeOpacity={0.8}
@@ -218,7 +218,7 @@ const AddWorkScreen: React.FC = () => {
           )}
         </TouchableOpacity>
 
-        {/* Campos do formulario */}
+        {/* // Campos do formulario */}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Adicionar trabalho</Text>
@@ -266,7 +266,7 @@ const AddWorkScreen: React.FC = () => {
         ) : null}
         </View>
 
-        {/* Acoes */}
+        {/* // Acoes */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={[styles.addButton, uploading && { opacity: 0.7 }]}

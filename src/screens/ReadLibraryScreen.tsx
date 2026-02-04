@@ -110,7 +110,7 @@ const ReadLibraryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabecalho */}
+      {/* // Cabecalho */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Leituras</Text>
         <View style={styles.logoContainer}>
@@ -122,7 +122,7 @@ const ReadLibraryScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Lista principal */}
+      {/* // Lista principal */}
       {error ? <Text style={[styles.headerTitle, { color: '#d32f2f', fontSize: 14 }]}>{error}</Text> : null}
       <FlatList
         data={works}

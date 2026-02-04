@@ -251,7 +251,7 @@ const ChatListScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabecalho */}
+      {/* // Cabecalho */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image
@@ -262,7 +262,7 @@ const ChatListScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Lista de conversas */}
+      {/* // Lista de conversas */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

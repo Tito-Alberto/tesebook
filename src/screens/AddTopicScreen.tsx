@@ -121,7 +121,7 @@ const AddTopicScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabecalho */}
+      {/* // Cabecalho */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -144,7 +144,7 @@ const AddTopicScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Campos do formulario */}
+        {/* // Campos do formulario */}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Adicionar Tema</Text>
@@ -186,7 +186,7 @@ const AddTopicScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Acoes */}
+        {/* // Acoes */}
         <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={[styles.addButton, saving && styles.buttonDisabled]}
@@ -209,7 +209,7 @@ const AddTopicScreen: React.FC = () => {
         {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
       </ScrollView>
 
-      {/* Modal de curso */}
+      {/* // Modal de curso */}
       <Modal
         visible={courseModalVisible}
         animationType="slide"

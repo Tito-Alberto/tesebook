@@ -403,7 +403,7 @@ const ReadWorkScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Cabecalho e acoes */}
+      {/* // Cabecalho e acoes */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -480,7 +480,7 @@ const ReadWorkScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Area de leitura */}
+      {/* // Area de leitura */}
       <View style={[styles.pdfContainer, isReading && styles.pdfContainerReading]}>
         {isReading ? (
           <>
@@ -541,10 +541,10 @@ const ReadWorkScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Erros gerais */}
+      {/* // Erros gerais */}
       {error ? <Text style={[styles.pdfText, { color: '#d32f2f', padding: 12 }]}>{error}</Text> : null}
 
-      {/* Toast de feedback */}
+      {/* // Toast de feedback */}
       {toastVisible ? (
         <Animated.View
           style={[
