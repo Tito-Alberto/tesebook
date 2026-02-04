@@ -154,8 +154,11 @@ const SearchScreen: React.FC = () => {
       (item.title || '').toLowerCase().includes(query) ||
       (item.course || '').toLowerCase().includes(query) ||
       (item.institution || '').toLowerCase().includes(query);
-    const byTab = activeTab === 'Curso' ? matchCourse : matchInstitution;
-    return matchCourse && matchInstitution && matchQuery && byTab;
+
+    if (activeTab === 'Curso') {
+      return matchCourse && matchQuery;
+    }
+    return matchInstitution && matchQuery;
   });
 
   const renderWorkItem = ({ item }: { item: Work }) => (
@@ -200,7 +203,10 @@ const SearchScreen: React.FC = () => {
         <View style={styles.tabsRow}>
           <TouchableOpacity
             style={styles.tab}
-            onPress={() => setActiveTab('Curso')}
+            onPress={() => {
+              setActiveTab('Curso');
+              setSelectedInstitution('');
+            }}
           >
             <Text
               style={[
@@ -215,7 +221,10 @@ const SearchScreen: React.FC = () => {
 
           <TouchableOpacity
             style={styles.tab}
-            onPress={() => setActiveTab('Instituicao')}
+            onPress={() => {
+              setActiveTab('Instituicao');
+              setSelectedCourse('');
+            }}
           >
             <Text
               style={[
@@ -272,6 +281,19 @@ const SearchScreen: React.FC = () => {
               <Ionicons name="chevron-down" size={18} color="#666" />
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => {
+              setSelectedCourse('');
+              setSelectedInstitution('');
+              setSearchQuery('');
+              setSearchVisible(false);
+            }}
+          >
+            <Ionicons name="close-circle-outline" size={18} color="#6b86f0" />
+            <Text style={styles.clearButtonText}>Limpar</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -433,6 +455,22 @@ const styles = StyleSheet.create({
   filterRow: {
     paddingHorizontal: 16,
     paddingBottom: 12,
+    gap: 10,
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#eef1ff',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  clearButtonText: {
+    marginLeft: 6,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b86f0',
   },
   filterButton: {
     flexDirection: 'row',
