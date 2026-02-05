@@ -251,8 +251,8 @@ const SearchScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
+        {/* // Barra de pesquisa */}
         {searchVisible && (
-          {/* // Barra de pesquisa */}
           <View style={styles.searchBar}>
             <Ionicons name="search" size={20} color="#6b86f0" style={{ marginRight: 8 }} />
             <TextInput

@@ -15,8 +15,11 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 import { getFileExtension, resolveStorageUrl } from '../lib/supabaseStorage';
 import { favoritesEvents } from '../lib/favoritesEvents';
+import { getViewerId } from '../lib/viewerId';
 import * as FileSystem from 'expo-file-system/legacy';
-import { WebView } from 'react-native-webview';
+import * as Sharing from 'expo-sharing';
+import * as WebBrowser from 'expo-web-browser';
+// WebView removido: leitura agora abre no navegador interno
 
 type RouteParams = {
   allowDownload?: boolean;
@@ -36,22 +39,19 @@ const ReadWorkScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(false);
-  const [isReading, setIsReading] = useState(false);
   const [readerLoading, setReaderLoading] = useState(false);
   const [readerError, setReaderError] = useState('');
-  const [readerUrl, setReaderUrl] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
+  const [hasViewed, setHasViewed] = useState<boolean | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Monta URL do leitor interno
-  const getViewerUrl = useCallback((pdfUrl: string) => {
-    if (Platform.OS === 'android') {
-      return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(pdfUrl)}`;
-    }
-    return pdfUrl;
+  const resolvePdfUrl = useCallback(async (rawUrl?: string | null) => {
+    if (!rawUrl) return null;
+    if (rawUrl.includes('/storage/v1/object/public/')) return rawUrl;
+    return resolveStorageUrl(rawUrl);
   }, []);
 
   // Regras para liberar download
@@ -116,10 +116,36 @@ const ReadWorkScreen: React.FC = () => {
   }, [params.workId]);
 
   // Conta visualizacoes do trabalho
-  const incrementViewCount = useCallback(async (workId: string) => {
+  const recordView = useCallback(async (workId: string, activeRef?: { current: boolean }) => {
     try {
-      const { error: viewError } = await supabase.rpc('increment_work_view', { work_id: workId });
-      if (viewError) console.warn('Erro ao contar visualizacao:', viewError.message);
+      const viewerId = await getViewerId();
+      let alreadyViewed = false;
+      const { data: viewed, error: viewedError } = await supabase.rpc('has_work_view', {
+        work_id: workId,
+        device_id: viewerId,
+      });
+      if (!viewedError) {
+        alreadyViewed = Boolean(viewed);
+        if (!activeRef || activeRef.current) {
+          setHasViewed(alreadyViewed);
+        }
+      }
+      const { error: viewError } = await supabase.rpc('increment_work_view', {
+        work_id: workId,
+        device_id: viewerId,
+      });
+      if (viewError) {
+        console.warn('Erro ao contar visualizacao:', viewError.message);
+        return;
+      }
+      if (!activeRef || activeRef.current) {
+        if (!alreadyViewed) {
+          setWork((prev: any) =>
+            prev ? { ...prev, view_count: (prev.view_count ?? 0) + 1 } : prev,
+          );
+        }
+        setHasViewed(true);
+      }
     } catch (err: any) {
       console.warn('Erro ao contar visualizacao:', err?.message);
     }
@@ -131,6 +157,7 @@ const ReadWorkScreen: React.FC = () => {
     const fetchWork = async () => {
       if (!params.workId) return;
       setLoading(true);
+      setHasViewed(null);
       try {
         const { data, error: workError } = await supabase
           .from('works')
@@ -139,7 +166,7 @@ const ReadWorkScreen: React.FC = () => {
           .single();
         if (workError) throw workError;
         const resolvedCover = data?.cover_url ? await resolveStorageUrl(data.cover_url) : null;
-        const resolvedPdf = data?.pdf_url ? await resolveStorageUrl(data.pdf_url) : null;
+        const resolvedPdf = await resolvePdfUrl(data?.pdf_url);
         if (activeRef.current) {
           setWork({
             ...data,
@@ -148,7 +175,7 @@ const ReadWorkScreen: React.FC = () => {
           });
         }
         if (data?.id) {
-          void incrementViewCount(data.id);
+          void recordView(data.id, activeRef);
         }
         if (activeRef.current) setError('');
       } catch (err: any) {
@@ -163,7 +190,7 @@ const ReadWorkScreen: React.FC = () => {
     return () => {
       activeRef.current = false;
     };
-  }, [params.workId, refreshFavoriteStatus, refreshStarStatus, incrementViewCount]);
+  }, [params.workId, refreshFavoriteStatus, refreshStarStatus, recordView]);
 
   useEffect(() => {
     const unsubscribe = favoritesEvents.subscribe((event) => {
@@ -223,39 +250,41 @@ const ReadWorkScreen: React.FC = () => {
   };
 
   // Inicia leitura interna do PDF
-  const handleStartReading = () => {
+  const handleStartReading = async () => {
     if (!work?.pdf_url) {
       showToast('PDF indisponivel.');
       return;
     }
     clearReaderTimeout();
     setReaderError('');
-    setIsReading(true);
     setReaderLoading(true);
-    setReaderUrl(getViewerUrl(work.pdf_url));
-    readerTimeoutRef.current = setTimeout(() => {
+    try {
+      await WebBrowser.openBrowserAsync(work.pdf_url, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+        showTitle: true,
+        enableBarCollapsing: true,
+      });
+    } catch (err: any) {
+      setReaderError(err?.message || 'Nao foi possivel abrir o PDF aqui.');
+    } finally {
       setReaderLoading(false);
-      setReaderError('Nao foi possivel abrir o PDF aqui. Use Abrir no navegador.');
-    }, 10000);
-  };
-
-  const handleReaderLoadEnd = () => {
-    clearReaderTimeout();
-    setReaderLoading(false);
-  };
-
-  const handleReaderError = (event: any) => {
-    clearReaderTimeout();
-    setReaderLoading(false);
-    setReaderError(event?.nativeEvent?.description || 'Nao foi possivel abrir o PDF.');
+    }
   };
 
   const handleOpenExternal = async () => {
     if (!work?.pdf_url) return;
     try {
-      await Linking.openURL(work.pdf_url);
+      await WebBrowser.openBrowserAsync(work.pdf_url, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+        showTitle: true,
+        enableBarCollapsing: true,
+      });
     } catch (err: any) {
-      setError(err?.message || 'Erro ao abrir o PDF.');
+      try {
+        await Linking.openURL(work.pdf_url);
+      } catch (linkErr: any) {
+        setError(linkErr?.message || err?.message || 'Erro ao abrir o PDF.');
+      }
     }
   };
 
@@ -305,15 +334,29 @@ const ReadWorkScreen: React.FC = () => {
 
       if (savedUri) {
         showToast('Arquivo salvo nos Documentos.');
-        let openUri = savedUri;
-        if (Platform.OS === 'android' && savedUri.startsWith('file://')) {
-          try {
-            openUri = await FileSystem.getContentUriAsync(savedUri);
-          } catch {
-            openUri = savedUri;
+        if (Platform.OS === 'android') {
+          let openUri = savedUri;
+          if (savedUri.startsWith('file://')) {
+            try {
+              openUri = await FileSystem.getContentUriAsync(savedUri);
+            } catch {
+              openUri = savedUri;
+            }
           }
+          await Linking.openURL(openUri);
+        } else if (Platform.OS === 'ios') {
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(savedUri, {
+              UTI: 'com.adobe.pdf',
+              mimeType: 'application/pdf',
+            });
+          } else {
+            await Linking.openURL(savedUri);
+          }
+        } else {
+          await Linking.openURL(savedUri);
         }
-        await Linking.openURL(openUri);
       }
     } catch (err: any) {
       const message = err?.message || 'Erro ao baixar o PDF.';
@@ -481,65 +524,33 @@ const ReadWorkScreen: React.FC = () => {
       </View>
 
       {/* // Area de leitura */}
-      <View style={[styles.pdfContainer, isReading && styles.pdfContainerReading]}>
-        {isReading ? (
-          <>
-            {readerError ? (
-              <View style={styles.readerError}>
-                <Text style={styles.readerErrorText}>{readerError}</Text>
-                <TouchableOpacity style={styles.readerErrorButton} onPress={handleOpenExternal}>
-                  <Text style={styles.readerErrorButtonText}>Abrir no navegador</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <WebView
-                source={readerUrl ? { uri: readerUrl } : { html: '<html><body></body></html>' }}
-                style={styles.pdfViewer}
-                originWhitelist={['*']}
-                javaScriptEnabled
-                domStorageEnabled
-                mixedContentMode="always"
-                onLoadEnd={handleReaderLoadEnd}
-                onError={handleReaderError}
-                onHttpError={handleReaderError}
-              />
-            )}
-            {readerLoading ? (
-              <View style={styles.readerLoading}>
-                <ActivityIndicator size="large" color="#6b86f0" />
-                <Text style={styles.readerLoadingText}>Carregando...</Text>
-              </View>
-            ) : null}
-            <TouchableOpacity
-              style={styles.closeViewerButton}
-              onPress={() => {
-                setIsReading(false);
-                setReaderError('');
-                setReaderUrl(null);
-              }}
-              hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
-            >
-              <Ionicons name="close" size={22} color="#ffffff" />
+      <TouchableOpacity
+        style={styles.pdfContainer}
+        activeOpacity={work?.pdf_url ? 0.85 : 1}
+        onPress={work?.pdf_url ? handleStartReading : undefined}
+      >
+        {readerLoading ? (
+          <View style={styles.readerLoading}>
+            <ActivityIndicator size="large" color="#6b86f0" />
+            <Text style={styles.readerLoadingText}>Carregando...</Text>
+          </View>
+        ) : readerError ? (
+          <View style={styles.readerError}>
+            <Text style={styles.readerErrorText}>{readerError}</Text>
+            <TouchableOpacity style={styles.readerErrorButton} onPress={handleOpenExternal}>
+              <Text style={styles.readerErrorButtonText}>Abrir no navegador</Text>
             </TouchableOpacity>
-          </>
+          </View>
+        ) : work?.cover_url ? (
+          <Image
+            source={{ uri: work.cover_url }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode='cover'
+          />
         ) : (
-          <TouchableOpacity
-            style={styles.coverContent}
-            activeOpacity={work?.pdf_url ? 0.85 : 1}
-            onPress={work?.pdf_url ? handleStartReading : undefined}
-          >
-            {work?.cover_url ? (
-              <Image
-                source={{ uri: work.cover_url }}
-                style={{ width: '100%', height: '100%' }}
-                resizeMode='cover'
-              />
-            ) : (
-              <Text style={styles.pdfText}>{loading ? 'Carregando...' : work?.title || 'Arquivo PDF'}</Text>
-            )}
-          </TouchableOpacity>
+          <Text style={styles.pdfText}>{loading ? 'Carregando...' : work?.title || 'Arquivo PDF'}</Text>
         )}
-      </View>
+      </TouchableOpacity>
 
       {/* // Erros gerais */}
       {error ? <Text style={[styles.pdfText, { color: '#d32f2f', padding: 12 }]}>{error}</Text> : null}
@@ -617,16 +628,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
-  pdfContainerReading: {
-    margin: 0,
-    borderRadius: 0,
-    backgroundColor: '#ffffff',
-  },
-  pdfViewer: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#ffffff',
-  },
   readerLoading: {
     position: 'absolute',
     top: 0,
@@ -667,18 +668,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
-  },
-  closeViewerButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
-    borderRadius: 16,
-    padding: 6,
-  },
-  coverContent: {
-    width: '100%',
-    height: '100%',
   },
   pdfText: {
     fontSize: 18,

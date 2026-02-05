@@ -290,17 +290,17 @@ const ChatScreen: React.FC = () => {
               )}
             </View>
             <View style={styles.studentDetails}>
-              <Text style={styles.studentName} numberOfLines={1}>
+              <Text style={styles.studentName} numberOfLines={1} ellipsizeMode="tail">
                 {displayName}
               </Text>
-              <Text style={styles.studentCourse} numberOfLines={1}>
+              <Text style={styles.studentCourse} numberOfLines={1} ellipsizeMode="tail">
                 {displayCourse}
-              </Text>
-              <Text style={styles.studentInstitution} numberOfLines={4}>
-                {displayInstitution}
               </Text>
             </View>
           </View>
+          <Text style={styles.studentInstitution} numberOfLines={3} ellipsizeMode="tail">
+            {displayInstitution}
+          </Text>
         </View>
         <View style={styles.headerRight} />
       </View>
@@ -364,6 +364,9 @@ const ChatScreen: React.FC = () => {
   );
 };
 
+const AVATAR_SIZE = 32;
+const AVATAR_GAP = 6;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -398,16 +401,15 @@ const styles = StyleSheet.create({
   studentInfo: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    flex: 1,
   },
   avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 6,
+    marginRight: AVATAR_GAP,
     marginTop: 2,
     overflow: 'hidden',
   },
@@ -420,6 +422,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     minWidth: 0,
     flex: 1,
+    paddingRight: 8,
   },
   studentName: {
     fontSize: 14,
@@ -434,11 +437,13 @@ const styles = StyleSheet.create({
   studentInstitution: {
     fontSize: 10,
     color: '#666',
-    marginTop: 2,
+    marginTop: 4,
     lineHeight: 14,
     flexShrink: 1,
     flexWrap: 'wrap',
     alignSelf: 'stretch',
+    marginLeft: AVATAR_SIZE + AVATAR_GAP,
+    paddingRight: 8,
   },
   messagesContainer: {
     flex: 1,

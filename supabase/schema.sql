@@ -49,6 +49,13 @@ create table if not exists public.work_stars (
   unique (user_id, work_id)
 );
 
+create table if not exists public.work_views (
+  viewer_id text not null,
+  work_id uuid references public.works (id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (viewer_id, work_id)
+);
+
 create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),
   sender_id uuid references auth.users (id) on delete cascade,
@@ -70,6 +77,7 @@ alter table public.works enable row level security;
 alter table public.suggested_topics enable row level security;
 alter table public.favorites enable row level security;
 alter table public.work_stars enable row level security;
+alter table public.work_views enable row level security;
 alter table public.messages enable row level security;
 alter table public.chat_reads enable row level security;
 
@@ -104,20 +112,67 @@ on public.works for delete
 using (auth.uid() = user_id);
 
 -- Increment work views (security definer)
-create or replace function public.increment_work_view(work_id uuid)
+create or replace function public.increment_work_view(work_id uuid, device_id text default null)
 returns void
 language plpgsql
 security definer
 set search_path = public
 as $$
 begin
-  update public.works
-  set view_count = coalesce(view_count, 0) + 1
-  where id = work_id;
+  if auth.uid() is not null then
+    insert into public.work_views (viewer_id, work_id)
+    values ('user:' || auth.uid()::text, work_id)
+    on conflict do nothing;
+  elsif device_id is not null and length(trim(device_id)) > 0 then
+    insert into public.work_views (viewer_id, work_id)
+    values ('device:' || device_id, work_id)
+    on conflict do nothing;
+  else
+    return;
+  end if;
+
+  if found then
+    update public.works
+    set view_count = coalesce(view_count, 0) + 1
+    where id = work_id;
+  end if;
 end;
 $$;
 
-grant execute on function public.increment_work_view(uuid) to anon, authenticated;
+grant execute on function public.increment_work_view(uuid, text) to anon, authenticated;
+
+-- Check if current viewer already viewed a work
+create or replace function public.has_work_view(work_id uuid, device_id text default null)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  viewer text;
+  exists_view boolean;
+begin
+  if auth.uid() is not null then
+    viewer := 'user:' || auth.uid()::text;
+  elsif device_id is not null and length(trim(device_id)) > 0 then
+    viewer := 'device:' || device_id;
+  else
+    return false;
+  end if;
+
+  select exists(
+    select 1
+    from public.work_views wv
+    where wv.viewer_id = viewer
+      and wv.work_id = work_id
+  )
+  into exists_view;
+
+  return coalesce(exists_view, false);
+end;
+$$;
+
+grant execute on function public.has_work_view(uuid, text) to anon, authenticated;
 
 -- Suggested topics
 create policy "topics_read_public"
@@ -153,6 +208,18 @@ with check (auth.uid() = user_id);
 create policy "work_stars_delete_own"
 on public.work_stars for delete
 using (auth.uid() = user_id);
+
+-- Work views
+create policy "work_views_read_own"
+on public.work_views for select
+using (viewer_id = ('user:' || auth.uid()::text));
+
+create policy "work_views_insert_public"
+on public.work_views for insert
+with check (
+  viewer_id like 'device:%'
+  or viewer_id = ('user:' || auth.uid()::text)
+);
 
 -- Messages
 create policy "messages_read_participant"

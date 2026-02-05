@@ -216,7 +216,9 @@ const HomeScreen: React.FC = () => {
   }, [works]);
 
   // Renderiza card de trabalho
-  const renderWorkCard = ({ item }: { item: Work }) => (
+  const renderWorkCard =
+    (showViews = false) =>
+    ({ item }: { item: Work }) => (
     <TouchableOpacity
       style={styles.workCard}
       activeOpacity={0.8}
@@ -239,6 +241,12 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.workDetailText}>{item.course || 'Curso'}</Text>
         <Text style={styles.workDetailText}>{item.institution || 'Instituicao'}</Text>
         <Text style={styles.workDetailText}>{item.academic_degree || 'Grau'}</Text>
+        {showViews ? (
+          <View style={styles.viewRow}>
+            <Ionicons name="eye-outline" size={14} color="#6b86f0" />
+            <Text style={styles.viewText}>{item.view_count ?? 0}</Text>
+          </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -354,7 +362,7 @@ const HomeScreen: React.FC = () => {
           </Text>
           <FlatList
             data={recentWorks}
-            renderItem={renderWorkCard}
+            renderItem={renderWorkCard()}
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -372,7 +380,7 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Melhores Trabalhos</Text>
           <FlatList
             data={bestWorks}
-            renderItem={renderWorkCard}
+            renderItem={renderWorkCard()}
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -390,7 +398,7 @@ const HomeScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Trabalhos mais visualizados</Text>
           <FlatList
             data={mostViewedWorks}
-            renderItem={renderWorkCard}
+            renderItem={renderWorkCard(true)}
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -589,6 +597,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginBottom: 4,
+  },
+  viewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  viewText: {
+    fontSize: 12,
+    color: '#6b86f0',
+    marginLeft: 6,
+    fontWeight: '600',
   },
   suggestedTopicCard: {
     width: width * 0.5,
