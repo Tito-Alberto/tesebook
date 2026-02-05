@@ -10,6 +10,7 @@ import {
   TextInput,
   Image,
   Alert,
+  Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -23,7 +24,7 @@ const AddWorkScreen: React.FC = () => {
   const [pdfFile, setPdfFile] = useState(pdfPlaceholder);
   const [pdfUri, setPdfUri] = useState<string | null>(null);
   const [topic, setTopic] = useState('');
-  const [allowDownload, setAllowDownload] = useState<string | null>(null);
+  const [allowDownload, setAllowDownload] = useState(true);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [coverAsset, setCoverAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
@@ -78,10 +79,6 @@ const AddWorkScreen: React.FC = () => {
       setErrorMessage('Selecione um arquivo PDF.');
       return;
     }
-    if (allowDownload === null) {
-      setErrorMessage('Escolha se permite download.');
-      return;
-    }
     setErrorMessage('');
     setUploading(true);
 
@@ -99,6 +96,21 @@ const AddWorkScreen: React.FC = () => {
         data: { session },
       } = await supabase.auth.getSession();
       const accessToken = session?.access_token || null;
+      let profileCourse = '';
+      let profileInstitution = '';
+      let profileDegree = '';
+      try {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('course,institution,academic_degree')
+          .eq('id', user.id)
+          .single();
+        profileCourse = profileData?.course || '';
+        profileInstitution = profileData?.institution || '';
+        profileDegree = profileData?.academic_degree || '';
+      } catch {
+        // Mantem campos em branco caso falhe
+      }
 
       const pdfExt = getFileExtension(pdfFile) || getFileExtension(pdfUri) || 'pdf';
       const pdfPath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${pdfExt}`;
@@ -147,12 +159,12 @@ const AddWorkScreen: React.FC = () => {
         user_id: user.id,
         title: topic,
         topic,
-        course: '',
-        institution: '',
-        academic_degree: '',
+        course: profileCourse,
+        institution: profileInstitution,
+        academic_degree: profileDegree,
         cover_url: coverUrl,
         pdf_url: pdfUrl,
-        allow_download: allowDownload === 'sim',
+        allow_download: allowDownload,
       });
       if (error) {
         const message = `Falha ao salvar trabalho: ${error.message}`;
@@ -242,27 +254,22 @@ const AddWorkScreen: React.FC = () => {
             <View style={styles.inputLine} />
           </View>
 
-          <View style={styles.radioContainer}>
+          <View style={styles.toggleContainer}>
             <Text style={styles.label}>Permitir fazer download?</Text>
-            <View style={styles.radioButtons}>
-              <TouchableOpacity style={styles.radioOption} onPress={() => setAllowDownload('sim')}>
-                <View style={styles.radioCircle}>
-                  {allowDownload === 'sim' && <View style={styles.radioInner} />}
-                </View>
-                <Text style={styles.radioText}>Sim</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.radioOption} onPress={() => setAllowDownload('nao')}>
-                <View style={styles.radioCircle}>
-                  {allowDownload === 'nao' && <View style={styles.radioInner} />}
-                </View>
-                <Text style={styles.radioText}>Nao</Text>
-              </TouchableOpacity>
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleText}>{allowDownload ? 'Sim' : 'Nao'}</Text>
+              <Switch
+                value={allowDownload}
+                onValueChange={setAllowDownload}
+                trackColor={{ false: '#d9def2', true: '#6b86f0' }}
+                thumbColor={allowDownload ? '#ffffff' : '#ffffff'}
+                ios_backgroundColor="#d9def2"
+              />
             </View>
           </View>
 
         {errorMessage ? (
-          <Text style={[styles.radioText, { color: '#d32f2f', marginTop: 8 }]}>{errorMessage}</Text>
+          <Text style={styles.errorText}>{errorMessage}</Text>
         ) : null}
         </View>
 
@@ -369,37 +376,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#6b86f0',
     marginTop: 8,
   },
-  radioContainer: {
+  toggleContainer: {
     marginBottom: 24,
   },
-  radioButtons: {
-    flexDirection: 'row',
-    marginTop: 12,
-  },
-  radioOption: {
+  toggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 24,
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#6b86f0',
-    marginRight: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#6b86f0',
-  },
-  radioText: {
+  toggleText: {
     fontSize: 16,
     color: '#222',
+    fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#d32f2f',
+    marginTop: 8,
   },
   buttonsContainer: {
     flexDirection: 'row',

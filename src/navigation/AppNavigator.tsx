@@ -10,6 +10,7 @@ import AddTopicScreen from '../screens/AddTopicScreen';
 import AddWorkScreen from '../screens/AddWorkScreen';
 import ReadWorkScreen from '../screens/ReadWorkScreen';
 import ChatScreen from '../screens/ChatScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
 // Stack principal de navegacao
 const Stack = createNativeStackNavigator();
@@ -85,6 +86,16 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Chat"
           component={ChatScreen}
+          options={{
+            animation: 'slide_from_right',
+            animationDuration: 300,
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+          }}
+        />
+        <Stack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
           options={{
             animation: 'slide_from_right',
             animationDuration: 300,

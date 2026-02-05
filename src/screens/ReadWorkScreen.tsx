@@ -544,8 +544,8 @@ const ReadWorkScreen: React.FC = () => {
         ) : work?.cover_url ? (
           <Image
             source={{ uri: work.cover_url }}
-            style={{ width: '100%', height: '100%' }}
-            resizeMode='cover'
+            style={styles.coverImage}
+            resizeMode='contain'
           />
         ) : (
           <Text style={styles.pdfText}>{loading ? 'Carregando...' : work?.title || 'Arquivo PDF'}</Text>
@@ -621,12 +621,17 @@ const styles = StyleSheet.create({
   },
   pdfContainer: {
     flex: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#ffffff',
     margin: 16,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#ffffff',
   },
   readerLoading: {
     position: 'absolute',

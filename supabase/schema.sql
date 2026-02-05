@@ -56,6 +56,20 @@ create table if not exists public.work_views (
   primary key (viewer_id, work_id)
 );
 
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  receiver_id uuid references auth.users (id) on delete cascade,
+  sender_id uuid references auth.users (id) on delete set null,
+  type text not null check (type in ('work', 'topic')),
+  work_id uuid references public.works (id) on delete cascade,
+  topic_id uuid references public.suggested_topics (id) on delete cascade,
+  created_at timestamptz default now(),
+  read_at timestamptz
+);
+
+create index if not exists notifications_receiver_idx
+  on public.notifications (receiver_id, read_at, created_at);
+
 create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),
   sender_id uuid references auth.users (id) on delete cascade,
@@ -78,6 +92,7 @@ alter table public.suggested_topics enable row level security;
 alter table public.favorites enable row level security;
 alter table public.work_stars enable row level security;
 alter table public.work_views enable row level security;
+alter table public.notifications enable row level security;
 alter table public.messages enable row level security;
 alter table public.chat_reads enable row level security;
 
@@ -221,6 +236,90 @@ with check (
   or viewer_id = ('user:' || auth.uid()::text)
 );
 
+-- Notifications
+create policy "notifications_read_own"
+on public.notifications for select
+using (auth.uid() = receiver_id);
+
+create policy "notifications_update_own"
+on public.notifications for update
+using (auth.uid() = receiver_id)
+with check (auth.uid() = receiver_id);
+
+-- Notify on new work
+create or replace function public.notify_course_on_work()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  author_course text;
+  course_key text;
+begin
+  select course into author_course
+  from public.profiles
+  where id = new.user_id;
+
+  course_key := nullif(trim(new.course), '');
+  if course_key is null then
+    course_key := nullif(trim(author_course), '');
+  end if;
+  if course_key is null then
+    return new;
+  end if;
+
+  insert into public.notifications (receiver_id, sender_id, type, work_id, created_at)
+  select p.id, new.user_id, 'work', new.id, now()
+  from public.profiles p
+  where p.id <> new.user_id
+    and p.course is not null
+    and length(trim(p.course)) > 0
+    and lower(trim(p.course)) = lower(course_key);
+
+  return new;
+end;
+$$;
+
+drop trigger if exists notify_course_on_work on public.works;
+create trigger notify_course_on_work
+after insert on public.works
+for each row
+execute function public.notify_course_on_work();
+
+-- Notify on new suggested topic
+create or replace function public.notify_course_on_topic()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  course_key text;
+begin
+  course_key := nullif(trim(new.course), '');
+  if course_key is null then
+    return new;
+  end if;
+
+  insert into public.notifications (receiver_id, sender_id, type, topic_id, created_at)
+  select p.id, new.user_id, 'topic', new.id, now()
+  from public.profiles p
+  where p.id <> new.user_id
+    and p.course is not null
+    and length(trim(p.course)) > 0
+    and lower(trim(p.course)) = lower(course_key);
+
+  return new;
+end;
+$$;
+
+drop trigger if exists notify_course_on_topic on public.suggested_topics;
+create trigger notify_course_on_topic
+after insert on public.suggested_topics
+for each row
+execute function public.notify_course_on_topic();
+
 -- Messages
 create policy "messages_read_participant"
 on public.messages for select
@@ -267,3 +366,17 @@ using (bucket_id in ('profile-photos', 'work-covers', 'work-pdfs') and auth.role
 create policy "storage_delete_auth"
 on storage.objects for delete
 using (bucket_id in ('profile-photos', 'work-covers', 'work-pdfs') and auth.role() = 'authenticated');
+
+-- Realtime (opcional, se nao estiver habilitado)
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'notifications'
+  ) then
+    alter publication supabase_realtime add table public.notifications;
+  end if;
+end $$;

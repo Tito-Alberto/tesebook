@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from '../lib/supabaseClient';
 import { resolveStorageUrl } from '../lib/supabaseStorage';
 
@@ -47,6 +47,7 @@ interface SuggestedTopic {
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   // Estado principal da tela
   const [works, setWorks] = useState<Work[]>([]);
   const [suggestedTopics, setSuggestedTopics] = useState<SuggestedTopic[]>([]);
@@ -54,6 +55,7 @@ const HomeScreen: React.FC = () => {
   const [topicModalVisible, setTopicModalVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [notificationCount, setNotificationCount] = useState(0);
   // Helpers para navegar entre tabs e stack
   const goToTab = (screen: string) => {
     const parent = navigation.getParent();
@@ -71,6 +73,105 @@ const HomeScreen: React.FC = () => {
       navigation.navigate(screen);
     }
   };
+
+  useEffect(() => {
+    const openTopicId = route?.params?.openTopicId;
+    if (!openTopicId) return;
+    const topic = suggestedTopics.find((item) => item.id === openTopicId) || null;
+    if (topic) {
+      setSelectedTopic(topic);
+      setTopicModalVisible(true);
+    }
+    navigation.setParams({ openTopicId: undefined });
+  }, [route?.params?.openTopicId, suggestedTopics, navigation]);
+
+  useEffect(() => {
+    let isActive = true;
+    let channel: any = null;
+    let authSubscription: any = null;
+
+    const fetchNotificationCount = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const currentUserId = user?.id || null;
+        if (!currentUserId) {
+          if (isActive) setNotificationCount(0);
+          return;
+        }
+
+        const { count, error: countError } = await supabase
+          .from('notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('receiver_id', currentUserId)
+          .is('read_at', null);
+        if (countError) throw countError;
+        if (isActive) setNotificationCount(typeof count === 'number' ? count : 0);
+      } catch {
+        if (isActive) setNotificationCount(0);
+      }
+    };
+
+    const setupChannel = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const currentUserId = user?.id || null;
+      if (!currentUserId) return;
+      if (channel) return;
+
+      channel = supabase
+        .channel(`notifications-badge-${currentUserId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `receiver_id=eq.${currentUserId}`,
+          },
+          () => {
+            fetchNotificationCount();
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notifications',
+            filter: `receiver_id=eq.${currentUserId}`,
+          },
+          () => {
+            fetchNotificationCount();
+          },
+        )
+        .subscribe();
+    };
+
+    const refresh = async () => {
+      await fetchNotificationCount();
+      await setupChannel();
+    };
+
+    refresh();
+    authSubscription = supabase.auth.onAuthStateChange(() => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+      refresh();
+    });
+
+    return () => {
+      isActive = false;
+      if (channel) supabase.removeChannel(channel);
+      if (authSubscription?.data?.subscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
+    };
+  }, []);
 
   // Carrega trabalhos ao focar na tela
   // Carrega temas sugeridos ao focar na tela
@@ -309,12 +410,19 @@ const HomeScreen: React.FC = () => {
           >
             <Ionicons name="add-circle-outline" size={28} color="#111" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            onPress={() => navigation.navigate('Notifications')}
+          >
             <View style={styles.notificationBadge}>
               <Ionicons name="notifications-outline" size={28} color="#111" />
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>9</Text>
-              </View>
+              {notificationCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           </TouchableOpacity>
         </View>
