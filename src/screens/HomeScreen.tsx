@@ -56,6 +56,7 @@ const HomeScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [notificationCount, setNotificationCount] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   // Helpers para navegar entre tabs e stack
   const goToTab = (screen: string) => {
     const parent = navigation.getParent();
@@ -84,6 +85,34 @@ const HomeScreen: React.FC = () => {
     }
     navigation.setParams({ openTopicId: undefined });
   }, [route?.params?.openTopicId, suggestedTopics, navigation]);
+
+  useEffect(() => {
+    let isActive = true;
+    let authSubscription: any = null;
+
+    const fetchUser = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (isActive) setCurrentUserId(user?.id || null);
+      } catch {
+        if (isActive) setCurrentUserId(null);
+      }
+    };
+
+    fetchUser();
+    authSubscription = supabase.auth.onAuthStateChange(() => {
+      fetchUser();
+    });
+
+    return () => {
+      isActive = false;
+      if (authSubscription?.data?.subscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -531,22 +560,23 @@ const HomeScreen: React.FC = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalTitle}>{selectedTopic?.title || 'Tema'}</Text>
-              <TouchableOpacity
-                style={styles.modalMessageButton}
-                onPress={() => {
-                  if (!selectedTopic?.user_id) return;
-                  setTopicModalVisible(false);
-                  navigation.navigate('Chat', {
-                    userId: selectedTopic.user_id,
-                    userName: selectedTopic.user?.name || 'Usuario',
-                    userCourse: selectedTopic.user?.course || selectedTopic.course || 'Curso',
-                    userInstitution: selectedTopic.user?.institution || 'Instituicao',
-                    userPhotoUrl: selectedTopic.user?.photo_url || null,
-                  });
-                }}
-              >
-                <Ionicons name="chatbubble-ellipses-outline" size={20} color="#6b86f0" />
-              </TouchableOpacity>
+              {selectedTopic?.user_id && selectedTopic.user_id !== currentUserId ? (
+                <TouchableOpacity
+                  style={styles.modalMessageButton}
+                  onPress={() => {
+                    setTopicModalVisible(false);
+                    navigation.navigate('Chat', {
+                      userId: selectedTopic.user_id,
+                      userName: selectedTopic.user?.name || 'Usuario',
+                      userCourse: selectedTopic.user?.course || selectedTopic.course || 'Curso',
+                      userInstitution: selectedTopic.user?.institution || 'Instituicao',
+                      userPhotoUrl: selectedTopic.user?.photo_url || null,
+                    });
+                  }}
+                >
+                  <Ionicons name="chatbubble-ellipses-outline" size={20} color="#6b86f0" />
+                </TouchableOpacity>
+              ) : null}
             </View>
             <Text style={styles.modalSubtitle}>{selectedTopic?.course || 'Curso'}</Text>
             <View style={styles.modalAuthorRow}>

@@ -44,6 +44,7 @@ const ReadWorkScreen: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const [hasViewed, setHasViewed] = useState<boolean | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const toastAnim = useRef(new Animated.Value(0)).current;
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,6 +61,12 @@ const ReadWorkScreen: React.FC = () => {
     if (work && work.allow_download === false) return false;
     return true;
   }, [params.allowDownload, work]);
+
+  const isOwnWork = useMemo(() => {
+    if (!currentUserId) return false;
+    if (!work?.user_id) return false;
+    return currentUserId === work.user_id;
+  }, [currentUserId, work?.user_id]);
 
   // Atualiza estado de favorito
   const refreshFavoriteStatus = useCallback(async (options?: { activeRef?: { current: boolean } }) => {
@@ -191,6 +198,34 @@ const ReadWorkScreen: React.FC = () => {
       activeRef.current = false;
     };
   }, [params.workId, refreshFavoriteStatus, refreshStarStatus, recordView]);
+
+  useEffect(() => {
+    let isActive = true;
+    let authSubscription: any = null;
+
+    const fetchUser = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (isActive) setCurrentUserId(user?.id || null);
+      } catch {
+        if (isActive) setCurrentUserId(null);
+      }
+    };
+
+    fetchUser();
+    authSubscription = supabase.auth.onAuthStateChange(() => {
+      fetchUser();
+    });
+
+    return () => {
+      isActive = false;
+      if (authSubscription?.data?.subscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = favoritesEvents.subscribe((event) => {
@@ -487,19 +522,21 @@ const ReadWorkScreen: React.FC = () => {
               color={isFavorite ? '#ff0000' : '#111'}
             />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => {
-              if (work?.user_id) {
-                navigation.navigate('Chat', { userId: work.user_id });
-              } else {
-                navigation.navigate('Chat');
-              }
-            }}
-            hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
-          >
-            <Ionicons name='chatbubbles-outline' size={24} color='#6b86f0' />
-          </TouchableOpacity>
+          {!isOwnWork ? (
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => {
+                if (work?.user_id) {
+                  navigation.navigate('Chat', { userId: work.user_id });
+                } else {
+                  navigation.navigate('Chat');
+                }
+              }}
+              hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
+            >
+              <Ionicons name='chatbubbles-outline' size={24} color='#6b86f0' />
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity
             style={[styles.iconButton, !work?.pdf_url && styles.iconButtonDisabled]}
             onPress={work?.pdf_url ? handleStartReading : undefined}
